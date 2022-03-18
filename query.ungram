@@ -1,0 +1,56 @@
+// Un-Grammar for the tracing query filter language.
+// https://rust-analyzer.github.io/blog/2020/10/24/introducing-ungrammar.html
+//
+// This does not specify parsing rules (ambiguities, precedence, etc).
+// It is solely a human artifact intended as a communcation tool.
+//
+// Legend:
+//
+//   //          -- comment
+//   Name =      -- non-terminal definition
+//   'ident'     -- token (terminal)
+//   A B         -- sequence
+//   A | B       -- alternation
+//   A*          -- zero or more repetition
+//   A?          -- zero or one repetition
+//   (A)         -- same as A
+//   label:A     -- suggested name for field of AST node
+
+Filter = queries:(Directive (',' Directive)*)* ,?
+
+Directive = '(' query:Query ')' ('=' level:LevelFilter)?
+
+LevelFilter = 'OFF' | 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE'
+
+Query =
+  | select:Select
+  | union:(Query '|' Query)
+  | intersect:(Query '&' Query)
+  | difference:(Query? '-' Query)
+  | '(' query:Query? ')' ('=' level:LevelFilter)?
+
+Select =
+  | target:Name
+  | target:Name? span:Span
+  | target:Name? event:Event
+
+Span = '?' name:Name fields:Fields? (('>' child:Span) | descendant:Span)?
+Event = fields:Fields
+
+Fields = '{' (Field ',')* Field? '}'
+Field =
+  | name:Name
+  | name:Name '=' fields:Fields
+  | name:Name '=' value:String
+  | name:Name cmp:('=','<','<=','>','>=') value:Number
+  | name:Name '=' value:('true' | 'false')
+
+Name = '/([^[:punct:][:space:]]|[_:])+/' | String
+String = '/(#*)".*?"\1/'
+Number = '/[0-9]+(\.[0-9]+)?([eE][0-9]+)?/'
+_Whitespace = '/[[:space:]]+/'
+
+// [[:punct:]
+//     !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+// [[:space:]]
+//     \t\n\v\f\r\x20
