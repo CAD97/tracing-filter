@@ -1,0 +1,32 @@
+// Un-Grammar for the simple filter language. This should be identical to the
+// grammar used for lib.rs/env_logger's filter; any deviation is a _bug_.
+// https://rust-analyzer.github.io/blog/2020/10/24/introducing-ungrammar.html
+//
+// This does not specify parsing rules (ambiguities, precedence, etc).
+// It is solely a human artifact intended as a communcation tool.
+// Tokens are processed -- case insensitivity, etc is implied.
+//
+// Legend:
+//
+//   //          -- comment
+//   Name =      -- non-terminal definition
+//   'ident'     -- token (terminal)
+//   A B         -- sequence
+//   A | B       -- alternation
+//   A*          -- zero or more repetition
+//   A?          -- zero or one repetition
+//   (A)         -- same as A
+//   label:A     -- suggested name for field of AST node
+
+Filter = directives:(Directive? (',' Directive?)*)* regex:('/' RegexFilter)?
+
+Directive =
+  |                         level:LevelFilter
+  | target:TargetFilter
+  | target:TargetFilter '=' level:LevelFilter
+
+LevelFilter = 'OFF' | 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE'
+
+TargetFilter = '/[^,/=]*/'
+
+RegexFilter = '/[^/]*/'
