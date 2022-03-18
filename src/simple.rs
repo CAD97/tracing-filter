@@ -211,6 +211,9 @@ pub enum Warning {
     #[error("invalid regex specified")]
     #[diagnostic(code(tracing_filter::simple::Warning::InvalidRegex), url(docsrs))]
     InvalidRegex {
+        // no, we are not going to parse the formatted regex error
+        // in order to translate it into miette span/labels
+        // it'd be nice, but it's not worth the brittle hacks
         error: regex::Error,
         #[label("{}", .error)]
         span: SourceSpan,
