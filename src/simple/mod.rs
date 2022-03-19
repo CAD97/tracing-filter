@@ -19,6 +19,24 @@ struct Directive {
     level: LevelFilter,
 }
 
+impl fmt::Display for Filter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for directive in &self.directives {
+            if let Some(target) = &directive.target {
+                write!(f, "{}=", target)?;
+            }
+            write!(f, "{},", directive.level)?;
+        }
+
+        #[cfg(feature = "regex")]
+        if let Some(regex) = &self.regex {
+            write!(f, "/{}", regex)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Filter {
     /// Parse a filter from its string representation.
     ///
@@ -147,24 +165,6 @@ impl FromStr for Filter {
     fn from_str(spec: &str) -> miette::Result<Self> {
         let (filter, errs) = Self::parse(spec);
         filter.ok_or_else(|| errs.expect("filter compilation failed without any diagnostics"))
-    }
-}
-
-impl fmt::Display for Filter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for directive in &self.directives {
-            if let Some(target) = &directive.target {
-                write!(f, "{}=", target)?;
-            }
-            write!(f, "{},", directive.level)?;
-        }
-
-        #[cfg(feature = "regex")]
-        if let Some(regex) = &self.regex {
-            write!(f, "/{}", regex)?;
-        }
-
-        Ok(())
     }
 }
 

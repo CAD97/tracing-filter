@@ -1,5 +1,24 @@
 This is an unstructured dumping ground for notes during development.
 
+## Memory filter use case (2022-03-19)
+
+For recorded event filtering, it would certainly also be useful to be able to
+filter e.g. a json serialized event stream and only have to process/deserialize
+a single event at a time. This can be done with e.g. json db queries, but using
+the same filter language as runtime filters is beneficial, and the domain
+knowledge added makes filtering easier.
+
+## Event field matching (2022-03-19) !important
+
+I believe filtering on event fields to be impossible with today's `Subscribe`
+(published `Layer`) design. The reason is that `Subscribe::enabled` gets only
+`Metadata` and `Context`, and the recording of fields at `Subscribe::on_record`
+only happens after `enabled` is determined.
+
+**This could be addressable by making `on_event` return `ControlFlow`**; the
+`Layered` collector would then only continue recording an event if subscribers
+report they want to `ControlFlow::Continue` to do so.
+
 ## Span field matching (2022-03-18)
 
 Per my reading of tracing_subscriber::EnvFilter, it matches fields on entry
