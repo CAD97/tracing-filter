@@ -1,5 +1,35 @@
 This is an unstructured dumping ground for notes during development.
 
+## Span field matching (2022-03-18)
+
+Per my reading of tracing_subscriber::EnvFilter, it matches fields on entry
+rather than recording and matching at filter time. This is good! AIUI it's an
+optimization that allows a) the field matching to be memoized and b) a negative
+filter to early-cancel contained spans/events. Unfortunately... more complicated
+queries such as [`(my_crate ?span_a ?span_b)=TRACE`][nested-span-filter] don't
+lend themselves as well to such caching. It's *possible*, and perhaps worth
+doing, but basically requires making an automaton to handle more complex cases
+which the query language supports, like `((?a ?b | ?a > ?c) & ?d)`. Plus, I
+would like to support filtering recorded spans (e.g. [tracing-memory], another
+semi-abandoned project of mine), and those don't really have the same enter/exit
+behavior... but maybe I can just "replay" the events to filter them through a
+memoized aproach, once it exists?
+
+I think, first-pass, proof-of-concept, serialize span fields into `Extensions`
+and do a full match on each event, rather than putting the development effort
+into generating the automaton while the project is still experimental.
+
+[nested-span-filter]: https://discord.com/channels/500028886025895936/627649734592561152/954104152059940944
+[tracing-memory]: https://github.com/CAD97/tracing-utils/tree/main/libs/tracing-memory
+
+## Static directive optimization (2022-03-18)
+
+We completely punt on the static directive optimization that tracing_subscriber
+EnvFilter has for the time being. This will almost certainly need to be looked
+into at a later point to match env_logger/current perf for statically disabled
+events. (Note "static" here means always for the collector, not compile-time.)
+Callsite caching of static directives is certainly an important optimization.
+
 ## Misc. notes (2022-03-17)
 
 - Nested span matching is based on CSS selectors; `element element` is
