@@ -19,6 +19,12 @@ pub struct FilterSubscriber<F> {
     filter: F,
 }
 
+impl<F> FilterSubscriber<F> {
+    pub fn new(filter: F) -> Self {
+        Self { filter }
+    }
+}
+
 impl<C: Collect, F: 'static + Filter<C>> Subscribe<C> for FilterSubscriber<F>
 where
     C: for<'a> LookupSpan<'a>,
