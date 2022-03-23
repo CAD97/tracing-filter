@@ -1,26 +1,27 @@
 //! These tests are adapted directly from env_logger 0.9.0
 //! env_logger is licensed under MIT OR Apache-2.0
 
+use crate::mock::{self, MockSubscribe};
 use tracing::{collect::with_default, level_filters::LevelFilter};
 use tracing_filter::{simple::Filter, FilterSubscriber};
-use tracing_mock::*;
-use tracing_subscriber::{subscribe::CollectExt, Registry};
+use tracing_mock::collector;
+use tracing_subscriber::subscribe::CollectExt;
 
 fn test(filter: Filter, f: impl FnOnce(&MockSubscribe)) {
     let filter = FilterSubscriber::new(filter);
-    let mock = subscribe::mock().strict(subscribe::ExpectKind::EVENT);
-    let collector = Registry::default().with(mock.clone()).with(filter);
+    let mock = mock::subscribe();
+    let collector = collector::mock().run().with(mock.clone()).with(filter);
     with_default(collector, || f(&mock));
-    mock.finish();
+    mock.assert_clear();
 }
 
 #[test]
 fn filter_info() {
     let filter = Filter::new().with_level(LevelFilter::INFO);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "crate1", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "crate1", "");
     });
 }
@@ -32,9 +33,9 @@ fn filter_beginning_longest_match() {
         .with_target("crate2::mod", LevelFilter::DEBUG)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "crate2::mod1", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "crate2", "");
     });
 }
@@ -43,9 +44,9 @@ fn filter_beginning_longest_match() {
 fn parse_default() {
     let filter = "info,crate1::mod1=warn".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "crate1::mod1", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "crate2::mod2", "");
     });
 }
@@ -54,15 +55,15 @@ fn parse_default() {
 fn parse_default_bare_level_off_lc() {
     let filter = "off".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -71,15 +72,15 @@ fn parse_default_bare_level_off_lc() {
 fn parse_default_bare_level_off_uc() {
     let filter = "OFF".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -88,15 +89,15 @@ fn parse_default_bare_level_off_uc() {
 fn parse_default_bare_level_error_lc() {
     let filter = "error".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -105,15 +106,15 @@ fn parse_default_bare_level_error_lc() {
 fn parse_default_bare_level_error_uc() {
     let filter = "ERROR".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -122,15 +123,15 @@ fn parse_default_bare_level_error_uc() {
 fn parse_default_bare_level_warn_lc() {
     let filter = "warn".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -139,15 +140,15 @@ fn parse_default_bare_level_warn_lc() {
 fn parse_default_bare_level_warn_uc() {
     let filter = "WARN".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -156,15 +157,15 @@ fn parse_default_bare_level_warn_uc() {
 fn parse_default_bare_level_info_lc() {
     let filter = "info".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -173,15 +174,15 @@ fn parse_default_bare_level_info_lc() {
 fn parse_default_bare_level_info_uc() {
     let filter = "INFO".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -190,15 +191,15 @@ fn parse_default_bare_level_info_uc() {
 fn parse_default_bare_level_debug_lc() {
     let filter = "debug".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -207,15 +208,15 @@ fn parse_default_bare_level_debug_lc() {
 fn parse_default_bare_level_debug_uc() {
     let filter = "DEBUG".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -224,15 +225,15 @@ fn parse_default_bare_level_debug_uc() {
 fn parse_default_bare_level_trace_lc() {
     let filter = "trace".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -241,15 +242,15 @@ fn parse_default_bare_level_trace_lc() {
 fn parse_default_bare_level_trace_uc() {
     let filter = "TRACE".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -262,57 +263,57 @@ fn parse_default_bare_level_trace_uc() {
 fn parse_default_bare_level_debug_mixed() {
     let filter = "Debug".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 
     let filter = "debuG".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 
     let filter = "deBug".parse().unwrap();
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 
     let filter = "DeBuG".parse().unwrap(); // LaTeX flavor!
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::error!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::trace!(target: "", "");
     });
 }
@@ -323,13 +324,13 @@ fn match_full_path() {
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "crate1::mod1", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::info!(target: "crate1::mod1", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "crate2", "");
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::debug!(target: "crate2", "");
     })
 }
@@ -340,7 +341,7 @@ fn no_match() {
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::warn!(target: "crate3", "");
     });
 }
@@ -351,7 +352,7 @@ fn match_beginning() {
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "crate2::mod1", "");
     });
 }
@@ -363,9 +364,9 @@ fn match_beginning_longest_match() {
         .with_target("crate2::mod", LevelFilter::DEBUG)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::debug!(target: "crate2::mod1", "");
-        mock.expect([]);
+        mock.expect_no_event();
         tracing::debug!(target: "crate2", "");
     })
 }
@@ -376,9 +377,9 @@ fn match_default() {
         .with_level(LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "crate1::mod1", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::warn!(target: "crate2::mod2", "");
     });
 }
@@ -389,9 +390,9 @@ fn zero_level() {
         .with_level(LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::OFF);
     test(filter, |mock| {
-        mock.expect(expect![]);
+        mock.expect_no_event();
         tracing::error!(target: "crate1::mod1", "");
-        mock.expect(expect![Event]);
+        mock.expect_event();
         tracing::info!(target: "crate2::mod2", "");
     })
 }
