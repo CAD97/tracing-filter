@@ -16,6 +16,11 @@
 //   (A)         -- same as A
 //   label:A     -- suggested name for field of AST node
 
+// This grammar as-is has problems differentiating the filtering of events and
+// of spans themselves; this comes from only thinking about filtering the output
+// of fmtlayer and not the data model itself. As such, it needs rethinking and
+// a proper redesign.
+
 Filter = queries:(Directive (',' Directive)*)* ,?
 
 Directive = '(' query:Query ')' ('=' level:LevelFilter)?

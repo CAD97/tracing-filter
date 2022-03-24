@@ -1,5 +1,36 @@
 This is an unstructured dumping ground for notes during development.
 
+## The problems with spans (2022-03-23)
+
+My initial filter syntax design was focused on filtering of _events_ in an event
+stream, e.g. as observed by the fmt layer's output. However, tracing's model is
+richer than that, and filtering spans is also necessary for a proper filter. In
+fact, in construction of this language, I misunderstood what the env filter
+`target[span]` did. I thought it enabled events within `target` within a span
+named `span`, but in fact it enables all events within a span named `span`
+which is itself marked with `target`.
+
+The difficulty in making a nice-to-use format is that `target` enables both
+spans within `target` and events within `target`. The 99% case will want to
+enable both together. However, separation has reasonably simple user stories as
+well; consider enabling all spans for a crate, but only events within a specific
+module (i.e. target).
+
+One idea I had was to use `?span#target` to specify span name/target together
+(basically stealing URL fragment syntax for it). That could allow the symantics
+
+- `target`: spans and events with target `target`
+- `?span`: spans with name `span`
+- `#target`: spans with target `target`
+- `* #span`: events within a span with target `target`
+
+Also, I think I want to inverse the current CSS inspired `?span > ?span` to be
+`target ?span < ?span`, to maintain a consistent inside-out order. (Perhaps `+`
+can be used here? But the inside-out order seems pertinent.)
+
+Combined with a rule that any spans used to enable events are enabled, this
+seems somewhat reasonable, at least.
+
 ## Memory filter use case (2022-03-19)
 
 For recorded event filtering, it would certainly also be useful to be able to
