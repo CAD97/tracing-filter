@@ -2,7 +2,7 @@ use {
     miette::Diagnostic,
     std::{fmt, fs, path::Path},
     thiserror::Error,
-    tracing_filter::simple::Filter,
+    tracing_filter::simple,
 };
 
 #[derive(Debug, Error)]
@@ -59,21 +59,21 @@ impl fmt::Display for DisplayDiagnostic<'_> {
 
 #[test]
 #[cfg(feature = "regex")]
-fn snapshot_filter_parser() {
+fn snapshot_simple_filter_parser() {
     fn callback(path: &Path) {
         let src = fs::read_to_string(path).unwrap();
-        let (filter, report) = Filter::parse(&src);
+        let (filter, report) = simple::Filter::parse(&src);
 
         if let Some(filter) = filter {
-            insta::assert_snapshot!(Some("filter"), format!("{filter:#?}"), &src);
+            insta::assert_snapshot!(Some("simple_filter"), format!("{filter:#?}"), &src);
         } else {
-            insta::assert_snapshot!(Some("filter"), "(compilation failed)", &src);
+            insta::assert_snapshot!(Some("simple_filter"), "(compilation failed)", &src);
         }
         if let Some(report) = report {
             let report = DisplayDiagnostic(&*report);
-            insta::assert_snapshot!(Some("report"), format!("{report}"), &src);
+            insta::assert_snapshot!(Some("simple_report"), format!("{report}"), &src);
         } else {
-            insta::assert_snapshot!(Some("report"), "(no warnings)", &src);
+            insta::assert_snapshot!(Some("simple_report"), "(no warnings)", &src);
         }
     }
 
