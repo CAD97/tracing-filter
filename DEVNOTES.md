@@ -1,5 +1,10 @@
 This is an unstructured dumping ground for notes during development.
 
+## smartstring (2022-03-23)
+
+I've used [smartstring](https://lib.rs/smartstring) for longterm string storage,
+but might want to consider [flexstr](https://lib.rs/flexstr) as well.
+
 ## The problems with spans (2022-03-23)
 
 My initial filter syntax design was focused on filtering of _events_ in an event

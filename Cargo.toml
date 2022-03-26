@@ -12,11 +12,14 @@ autobenches = false
 regex = ["dep:regex"]
 
 [dependencies]
+matchers = "0.1.0"
 miette = "4.2.1"
 regex = { version = "1.5.5", optional = true }
-smartstring = "1.0.0"
+smallvec = { version = "1.8.0", optional = true }
+smartstring = "1.0.1"
 sorted-vec = "0.7.0"
 thiserror = "1.0.30"
+thread_local = "1.1.4"
 
 [dependencies.tracing]
 version = "0.2.0"

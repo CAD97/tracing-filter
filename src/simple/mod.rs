@@ -1,17 +1,17 @@
-use std::cmp;
-
-use sorted_vec::SortedVec;
+use tracing_core::Interest;
 
 use {
     crate::DEFAULT_ENV,
     miette::ErrReport,
     smartstring::alias::String as SmartString,
-    std::{borrow::Cow, env, ffi::OsStr, fmt},
+    sorted_vec::SortedVec,
+    std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::LevelFilter,
 };
 
 mod parse;
 
+/// A filter matching the semantics of the `env_logger` crate's filter format.
 #[derive(Debug, Default)]
 pub struct Filter {
     directives: SortedVec<Directive>,
@@ -138,14 +138,8 @@ impl Filter {
         self.add_regex(regex);
         self
     }
-}
 
-impl<C> crate::subscriber::Filter<C> for Filter {
-    fn enabled(
-        &self,
-        metadata: &tracing::Metadata<'_>,
-        _ctx: tracing_subscriber::subscribe::Context<'_, C>,
-    ) -> bool {
+    fn is_enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0
 
@@ -164,5 +158,23 @@ impl<C> crate::subscriber::Filter<C> for Filter {
         }
 
         false
+    }
+}
+
+impl<C> crate::Filter<C> for Filter {
+    fn interest(&self, metadata: &tracing::Metadata<'_>) -> tracing_core::Interest {
+        if self.is_enabled(metadata) {
+            Interest::always()
+        } else {
+            Interest::never()
+        }
+    }
+
+    fn enabled(
+        &self,
+        metadata: &tracing::Metadata<'_>,
+        _ctx: tracing_subscriber::subscribe::Context<'_, C>,
+    ) -> bool {
+        self.is_enabled(metadata)
     }
 }
