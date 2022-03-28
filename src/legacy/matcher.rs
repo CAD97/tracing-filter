@@ -28,9 +28,9 @@ pub(super) struct CallsiteMatch {
 
 pub(super) type SpanMatcher = MatchSet<SpanMatch>;
 pub(super) struct SpanMatch {
-    pub(super) fields: HashMap<Field, (ValueMatch, AtomicBool)>,
-    pub(super) level: LevelFilter,
-    pub(super) matched: AtomicBool,
+    fields: HashMap<Field, (ValueMatch, AtomicBool)>,
+    level: LevelFilter,
+    matched: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -49,7 +49,7 @@ pub(super) trait Match {
 }
 
 impl CallsiteMatch {
-    pub(super) fn to_span_match(&self) -> SpanMatch {
+    fn to_span_match(&self) -> SpanMatch {
         let fields = self
             .fields
             .iter()
@@ -100,7 +100,7 @@ impl SpanMatcher {
 }
 
 impl SpanMatch {
-    pub(super) fn visitor(&self) -> impl Visit + '_ {
+    fn visitor(&self) -> impl Visit + '_ {
         struct MatchVisitor<'a> {
             inner: &'a SpanMatch,
         }
@@ -170,7 +170,7 @@ impl SpanMatch {
         MatchVisitor { inner: self }
     }
 
-    pub(super) fn filter(&self) -> Option<LevelFilter> {
+    fn filter(&self) -> Option<LevelFilter> {
         if self.is_matched() {
             Some(self.level)
         } else {
@@ -178,7 +178,7 @@ impl SpanMatch {
         }
     }
 
-    pub(super) fn is_matched(&self) -> bool {
+    fn is_matched(&self) -> bool {
         if self.matched.load(Acquire) {
             return true;
         }

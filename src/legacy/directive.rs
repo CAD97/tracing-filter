@@ -14,28 +14,25 @@ pub(super) struct DirectiveSet<T> {
 
 pub(super) type Dynamics = DirectiveSet<DynamicDirective>;
 pub(super) struct DynamicDirective {
-    pub(super) span: Option<String>,
-    pub(super) fields: FilterVec<FieldMatch>,
-    pub(super) target: Option<String>,
-    pub(super) level: LevelFilter,
+    span: Option<String>,
+    fields: FilterVec<FieldMatch>,
+    target: Option<String>,
+    level: LevelFilter,
 }
 
 pub(super) type Statics = DirectiveSet<StaticDirective>;
 pub(super) struct StaticDirective {
-    pub(super) target: Option<String>,
-    pub(super) fields: FilterVec<String>,
-    pub(super) level: LevelFilter,
+    target: Option<String>,
+    fields: FilterVec<String>,
+    level: LevelFilter,
 }
 
 impl<T> DirectiveSet<T> {
-    pub(super) fn directives(&self) -> impl Iterator<Item = &T> {
+    fn directives(&self) -> impl Iterator<Item = &T> {
         self.directives.iter()
     }
 
-    pub(super) fn directives_for<'a>(
-        &'a self,
-        metadata: &'a Metadata<'a>,
-    ) -> impl Iterator<Item = &'a T> + 'a
+    fn directives_for<'a>(&'a self, metadata: &'a Metadata<'a>) -> impl Iterator<Item = &'a T> + 'a
     where
         T: Match,
     {
@@ -44,7 +41,7 @@ impl<T> DirectiveSet<T> {
 }
 
 impl DynamicDirective {
-    pub(super) fn field_matcher(&self, metadata: &Metadata<'_>) -> Option<CallsiteMatch> {
+    fn field_matcher(&self, metadata: &Metadata<'_>) -> Option<CallsiteMatch> {
         let fieldset = metadata.fields();
         let fields = self
             .fields
