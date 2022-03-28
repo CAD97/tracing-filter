@@ -12,7 +12,7 @@ use {
 
 pub(super) struct MatchSet<T> {
     pub(super) fields: FilterVec<T>,
-    pub(super) level: LevelFilter,
+    pub(super) base_level: LevelFilter,
 }
 
 pub(super) struct FieldMatch {
@@ -77,12 +77,21 @@ impl CallsiteMatcher {
             .collect();
         SpanMatcher {
             fields,
-            level: self.level,
+            base_level: self.base_level,
         }
     }
 }
 
 impl SpanMatcher {
+    /// Returns the level currently enabled for this callsite.
+    pub(super) fn level(&self) -> LevelFilter {
+        self.fields
+            .iter()
+            .filter_map(SpanMatch::filter)
+            .max()
+            .unwrap_or(self.base_level)
+    }
+
     pub(super) fn record_update(&self, record: &span::Record<'_>) {
         for m in &self.fields {
             record.record(&mut m.visitor())
@@ -159,5 +168,32 @@ impl SpanMatch {
             }
         }
         MatchVisitor { inner: self }
+    }
+
+    pub(super) fn filter(&self) -> Option<LevelFilter> {
+        if self.is_matched() {
+            Some(self.level)
+        } else {
+            None
+        }
+    }
+
+    pub(super) fn is_matched(&self) -> bool {
+        if self.matched.load(Acquire) {
+            return true;
+        }
+        self.is_matched_slow()
+    }
+
+    #[inline(never)]
+    fn is_matched_slow(&self) -> bool {
+        let matched = self
+            .fields
+            .values()
+            .all(|(_, matched)| matched.load(Acquire));
+        if matched {
+            self.matched.store(true, Release);
+        }
+        matched
     }
 }

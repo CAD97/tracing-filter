@@ -106,29 +106,29 @@ impl<C: Collect> crate::Filter<C> for Filter {
         // changing the filter while a span is already entered. But that seems
         // much less efficient...
         if let Some(span) = try_lock!(self.by_id.read()).get(id) {
-            self.scope.get_or_default().borrow_mut().push(span.level);
+            self.scope.get_or_default().borrow_mut().push(span.level());
         }
     }
 
-    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, ctx: Context<'_, C>) {
+    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, C>) {
         if let Some(span) = try_lock!(self.by_id.read()).get(id) {
             span.record_update(values);
         }
     }
 
-    fn on_exit(&self, id: &span::Id, ctx: Context<'_, C>) {
+    fn on_exit(&self, id: &span::Id, _ctx: Context<'_, C>) {
         if self.cares_about_span(id) {
             self.scope.get_or_default().borrow_mut().pop();
         }
     }
 
-    fn on_close(&self, id: &span::Id, ctx: Context<'_, C>) {
+    fn on_close(&self, id: &span::Id, _ctx: Context<'_, C>) {
         // If we don't need a write lock, avoid taking one.
-        if !self.cares_about_span(&id) {
+        if !self.cares_about_span(id) {
             return;
         }
 
         let mut by_id = try_lock!(self.by_id.write());
-        by_id.remove(&id);
+        by_id.remove(id);
     }
 }

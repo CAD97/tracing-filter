@@ -135,6 +135,9 @@ impl Match for StaticDirective {
 impl Statics {
     pub(super) fn enabled(&self, metadata: &Metadata<'_>) -> bool {
         let level = metadata.level();
+        if self.level >= *level {
+            return false;
+        }
         match self.directives_for(metadata).next() {
             Some(d) => d.level >= *level,
             None => false,
@@ -161,11 +164,14 @@ impl Dynamics {
             .collect();
 
         if let Some(level) = level {
-            Some(CallsiteMatcher { fields, level })
+            Some(CallsiteMatcher {
+                fields,
+                base_level: level,
+            })
         } else if !fields.is_empty() {
             Some(CallsiteMatcher {
                 fields,
-                level: level.unwrap_or(LevelFilter::OFF),
+                base_level: level.unwrap_or(LevelFilter::OFF),
             })
         } else {
             None
