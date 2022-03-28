@@ -88,36 +88,19 @@ impl Filter {
             }
         }
 
-        let regex = regex.and_then(|regex| {
-            #[cfg(feature = "regex")]
-            {
-                match regex::Regex::new(regex) {
-                    Ok(regex) => Some(regex),
-                    Err(error) => {
-                        warnings.push(Warning::InvalidRegex {
-                            error,
-                            span: recover_span(spec, regex).into(),
-                        });
-                        None
-                    },
-                }
-            }
-
-            #[cfg(not(feature = "regex"))]
-            {
-                warnings.push(Warning::DisabledRegex {
+        let regex = regex.and_then(|regex| match regex::Regex::new(regex) {
+            Ok(regex) => Some(regex),
+            Err(error) => {
+                warnings.push(Warning::InvalidRegex {
+                    error,
                     span: recover_span(spec, regex).into(),
                 });
-                None::<()>
-            }
+                None
+            },
         });
 
         let _ = regex; // mark used for cfg(not(feature = "regex"))
-        let filter = Some(Filter {
-            directives,
-            #[cfg(feature = "regex")]
-            regex,
-        });
+        let filter = Some(Filter { directives, regex });
         let report = if warnings.is_empty() {
             None
         } else {
@@ -149,17 +132,6 @@ struct Warnings {
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
 pub enum Warning {
-    #[allow(dead_code)]
-    #[error("regex filter used, but regex filters are not enabled")]
-    #[diagnostic(
-        code(tracing_filter::simple::Warning::DisabledRegex),
-        url(docsrs),
-        help("enable the `regex` filter for `tracing_filter` to enable")
-    )]
-    DisabledRegex {
-        #[label("regex filter used here")]
-        span: SourceSpan,
-    },
     #[error("invalid level filter specified")]
     #[diagnostic(
         code(tracing_filter::simple::Warning::InvalidLevel),
@@ -170,7 +142,6 @@ pub enum Warning {
         #[label("this level filter is invalid")]
         span: SourceSpan,
     },
-    #[cfg(feature = "regex")]
     #[error("invalid regex specified")]
     #[diagnostic(code(tracing_filter::simple::Warning::InvalidRegex), url(docsrs))]
     InvalidRegex {

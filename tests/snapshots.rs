@@ -58,7 +58,6 @@ impl fmt::Display for DisplayDiagnostic<'_> {
 }
 
 #[test]
-#[cfg(feature = "regex")]
 fn snapshot_simple_filter_parser() {
     fn callback(path: &Path) {
         let src = fs::read_to_string(path).unwrap();

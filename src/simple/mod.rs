@@ -15,7 +15,6 @@ mod parse;
 #[derive(Debug, Default)]
 pub struct Filter {
     directives: SortedVec<Directive>,
-    #[cfg(all(feature = "regex"))]
     regex: Option<regex::Regex>,
 }
 
@@ -49,7 +48,6 @@ impl fmt::Display for Filter {
             write!(f, "{},", directive.level)?;
         }
 
-        #[cfg(feature = "regex")]
         if let Some(regex) = &self.regex {
             write!(f, "/{}", regex)?;
         }
@@ -62,7 +60,6 @@ impl Filter {
     pub fn new() -> Self {
         Self {
             directives: SortedVec::new(),
-            #[cfg(feature = "regex")]
             regex: None,
         }
     }
@@ -125,7 +122,6 @@ impl Filter {
         self
     }
 
-    #[cfg(feature = "regex")]
     pub fn add_regex(&mut self, regex: regex::Regex) {
         match &self.regex {
             Some(_) => panic!("set `tracing_filter::simple::Filter` regex that was already set"),
@@ -133,7 +129,6 @@ impl Filter {
         }
     }
 
-    #[cfg(feature = "regex")]
     pub fn with_regex(mut self, regex: regex::Regex) -> Self {
         self.add_regex(regex);
         self
