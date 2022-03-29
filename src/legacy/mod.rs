@@ -11,6 +11,7 @@ mod matcher;
 mod parse;
 
 /// A filter matching tracing's legacy EnvFilter format.
+#[derive(Debug)]
 pub struct Filter {
     scope: ThreadLocal<RefCell<Vec<LevelFilter>>>,
     statics: directive::Statics,

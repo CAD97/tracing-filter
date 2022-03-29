@@ -2,7 +2,7 @@ use {
     miette::Diagnostic,
     std::{fmt, fs, path::Path},
     thiserror::Error,
-    tracing_filter::simple,
+    tracing_filter::{legacy, simple},
 };
 
 #[derive(Debug, Error)]
@@ -73,6 +73,24 @@ fn snapshot_simple_filter_parser() {
             insta::assert_snapshot!(Some("simple_report"), format!("{report}"), &src);
         } else {
             insta::assert_snapshot!(Some("simple_report"), "(no warnings)", &src);
+        }
+    }
+
+    insta::glob!("test_cases/*.env_filter", callback);
+}
+
+#[test]
+fn snapshot_legacy_filter_parser() {
+    fn callback(path: &Path) {
+        let src = fs::read_to_string(path).unwrap();
+        let (filter, report) = legacy::Filter::parse(&src);
+
+        insta::assert_snapshot!(Some("legacy_filter"), format!("{filter:#?}"), &src);
+        if let Some(report) = report {
+            let report = DisplayDiagnostic(&*report);
+            insta::assert_snapshot!(Some("legacy_report"), format!("{report}"), &src);
+        } else {
+            insta::assert_snapshot!(Some("legacy_report"), "(no warnings)", &src);
         }
     }
 

@@ -12,6 +12,7 @@ use {
     tracing_core::{span, Field, LevelFilter},
 };
 
+#[derive(Debug)]
 pub(super) struct MatchSet<T> {
     pub(super) fields: SmallVec<T>,
     pub(super) base_level: LevelFilter,
@@ -24,12 +25,16 @@ pub(super) struct FieldMatch {
 }
 
 pub(super) type CallsiteMatcher = MatchSet<CallsiteMatch>;
+
+#[derive(Debug)]
 pub(super) struct CallsiteMatch {
     pub(super) fields: HashMap<Field, ValueMatch>,
     pub(super) level: LevelFilter,
 }
 
 pub(super) type SpanMatcher = MatchSet<SpanMatch>;
+
+#[derive(Debug)]
 pub(super) struct SpanMatch {
     fields: HashMap<Field, (ValueMatch, AtomicBool)>,
     level: LevelFilter,

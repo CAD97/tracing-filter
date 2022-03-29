@@ -35,7 +35,7 @@ impl Filter {
 
         let mut i = 0;
         while i < spec.len() {
-            let j = spec.find(',').map(|j| i + j).unwrap_or(spec.len());
+            let j = spec[i..].find(',').map(|j| i + j).unwrap_or(spec.len());
             match DynamicDirective::parse(spec, i..j) {
                 Ok(directive) => directives.push(directive),
                 Err(directive) => ignored.push(directive),
@@ -43,7 +43,9 @@ impl Filter {
             i = j + 1;
         }
 
-        let ignored = Some(ignored).filter(Vec::is_empty).map(IgnoredDirectives);
+        let ignored = Some(ignored)
+            .filter(|v| !v.is_empty())
+            .map(IgnoredDirectives);
         let (filter, disabled) = Self::from_directives(directives);
         match (ignored, disabled) {
             (None, None) => (filter, None),
@@ -146,6 +148,7 @@ impl DynamicDirective {
         static FIELDS_RE: Lazy<Regex> =
             Lazy::new(|| Regex::new(r"[[:word:]][[[:word:]]\.]*(?:=[^,]+)?(?:,|$)").unwrap());
 
+        let mut first_time = true;
         let mut parse_target_span = |pos: &mut usize| -> Result<(), IgnoredDirective> {
             if let Some(m) = TARGET_RE.find(&spec[*pos..]) {
                 // target
@@ -181,6 +184,7 @@ impl DynamicDirective {
                             })
                             .transpose()?
                             .unwrap_or_default();
+                        *pos = span_start + span_len + 1;
                     },
                     None => {
                         return Err(IgnoredDirective::UnclosedSpan {
@@ -189,12 +193,13 @@ impl DynamicDirective {
                         })
                     },
                 }
-            } else {
+            } else if first_time {
                 return Err(IgnoredDirective::InvalidTarget {
                     span: (range.start + *pos..range.end).into(),
                 });
             }
 
+            first_time = false;
             Ok(())
         };
 
@@ -207,16 +212,31 @@ impl DynamicDirective {
         // (?:=(?P<level>(?i:trace|debug|info|warn|error|off|[0-5]))?)?$
         if spec[pos..].starts_with('=') {
             pos += 1;
-            match spec[pos..].parse() {
-                Ok(level) => Ok(DynamicDirective {
+            if pos == spec.len() {
+                Ok(DynamicDirective {
                     span,
                     fields,
                     target,
-                    level,
-                }),
-                Err(_) => Err(IgnoredDirective::InvalidLevel {
-                    span: (range.start + pos..range.end).into(),
-                }),
+                    level: LevelFilter::TRACE,
+                })
+            } else {
+                match spec[pos..].parse() {
+                    Ok(level) => Ok(DynamicDirective {
+                        span,
+                        fields,
+                        target,
+                        level,
+                    }),
+                    Err(_) if pos == range.end => Ok(DynamicDirective {
+                        span,
+                        fields,
+                        target,
+                        level: LevelFilter::TRACE,
+                    }),
+                    Err(_) => Err(IgnoredDirective::InvalidLevel {
+                        span: (range.start + pos..range.end).into(),
+                    }),
+                }
             }
         } else if spec.len() == pos {
             Ok(DynamicDirective {

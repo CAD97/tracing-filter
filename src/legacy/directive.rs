@@ -8,6 +8,7 @@ use {
     tracing_core::LevelFilter,
 };
 
+#[derive(Debug)]
 pub(super) struct DirectiveSet<T: Ord> {
     pub(super) directives: SortedSet<T>,
     pub(super) level: LevelFilter,
@@ -25,7 +26,7 @@ pub(super) struct DynamicDirective {
 
 pub(super) type Statics = DirectiveSet<StaticDirective>;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(super) struct StaticDirective {
     pub(super) target: Option<String>,
     pub(super) fields: SmallVec<String>,
