@@ -22,6 +22,6 @@ pub(crate) const DEFAULT_ENV: &str = "RUST_LOG";
 pub use self::subscriber::{Filter, FilterSubscriber};
 
 #[cfg(feature = "smallvec")]
-type FilterVec<T> = smallvec::SmallVec<[T; 8]>;
+type SmallVec<T> = smallvec::SmallVec<[T; 8]>;
 #[cfg(not(feature = "smallvec"))]
-type FilterVec<T> = Vec<T>;
+type SmallVec<T> = Vec<T>;

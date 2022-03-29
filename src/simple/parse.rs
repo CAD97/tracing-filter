@@ -1,8 +1,7 @@
-use sorted_vec::SortedVec;
-
 use {
     super::{Directive, Filter},
     miette::{Diagnostic, ErrReport, SourceSpan},
+    sorted_vec::ReverseSortedVec,
     std::{ops::Range, str::FromStr},
     thiserror::Error,
     tracing_core::LevelFilter,
@@ -28,7 +27,7 @@ impl Filter {
             offset..offset + substr.len()
         }
 
-        let mut directives = SortedVec::new();
+        let mut directives = ReverseSortedVec::new();
         let mut parts = spec.split('/');
         let dirs = parts.next();
         let regex = parts.next();
@@ -134,16 +133,16 @@ struct Warnings {
 pub enum Warning {
     #[error("invalid level filter specified")]
     #[diagnostic(
-        code(tracing_filter::simple::Warning::InvalidLevel),
+        code(tracing_filter::simple::InvalidLevel),
         url(docsrs),
         help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE")
     )]
     InvalidLevel {
-        #[label("this level filter is invalid")]
+        #[label]
         span: SourceSpan,
     },
     #[error("invalid regex specified")]
-    #[diagnostic(code(tracing_filter::simple::Warning::InvalidRegex), url(docsrs))]
+    #[diagnostic(code(tracing_filter::simple::InvalidRegex), url(docsrs))]
     InvalidRegex {
         // no, we are not going to parse the formatted regex error
         // in order to translate it into miette span/labels
@@ -159,7 +158,7 @@ pub enum Warning {
 pub enum Error {
     #[error("logging spec has too many `/`s")]
     #[diagnostic(
-        code(tracing_filter::simple::Error::MultipleSlash),
+        code(tracing_filter::simple::MultipleSlash),
         url(docsrs),
         help("regex filters may not contain `/`")
     )]

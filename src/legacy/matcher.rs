@@ -1,9 +1,11 @@
 use {
-    crate::FilterVec,
+    crate::SmallVec,
     matchers::Pattern,
     smartstring::alias::String,
     std::{
+        cmp::Ordering,
         collections::HashMap,
+        fmt,
         sync::atomic::{AtomicBool, Ordering::*},
     },
     tracing::{field::Visit, Metadata},
@@ -11,10 +13,11 @@ use {
 };
 
 pub(super) struct MatchSet<T> {
-    pub(super) fields: FilterVec<T>,
+    pub(super) fields: SmallVec<T>,
     pub(super) base_level: LevelFilter,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub(super) struct FieldMatch {
     pub(super) name: String,
     pub(super) value: Option<ValueMatch>,
@@ -33,14 +36,20 @@ pub(super) struct SpanMatch {
     matched: AtomicBool,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(super) enum ValueMatch {
     Bool(bool),
     F64(f64),
     U64(u64),
     I64(i64),
     NaN,
-    Pat(Box<Pattern>),
+    Pat(Box<PatternMatch>),
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct PatternMatch {
+    pub(super) matcher: Pattern,
+    pub(super) pattern: String,
 }
 
 pub(super) trait Match {
@@ -151,7 +160,7 @@ impl SpanMatch {
 
             fn record_str(&mut self, field: &Field, value: &str) {
                 match self.inner.fields.get(field) {
-                    Some((ValueMatch::Pat(e), matched)) if e.matches(&value) => {
+                    Some((ValueMatch::Pat(e), matched)) if e.matcher.matches(&value) => {
                         matched.store(true, Release);
                     },
                     _ => {},
@@ -160,7 +169,7 @@ impl SpanMatch {
 
             fn record_debug(&mut self, field: &Field, value: &dyn core::fmt::Debug) {
                 match self.inner.fields.get(field) {
-                    Some((ValueMatch::Pat(e), matched)) if e.debug_matches(&value) => {
+                    Some((ValueMatch::Pat(e), matched)) if e.matcher.debug_matches(&value) => {
                         matched.store(true, Release);
                     },
                     _ => {},
@@ -195,5 +204,136 @@ impl SpanMatch {
             self.matched.store(true, Release);
         }
         matched
+    }
+}
+
+impl PartialOrd for FieldMatch {
+    fn partial_cmp(&self, rhs: &Self) -> Option<Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
+impl Ord for FieldMatch {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Ordering for `FieldMatch` directives is based first on _whether_ a
+        // value is matched or not. This is semantically meaningful --- we would
+        // prefer to check directives that match values first as they are more
+        // specific.
+        let has_value = match (self.value.as_ref(), other.value.as_ref()) {
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            _ => Ordering::Equal,
+        };
+        // If both directives match a value, we fall back to the field names in
+        // length + lexicographic ordering, and if these are equal as well, we
+        // compare the match directives.
+        //
+        // This ordering is no longer semantically meaningful but is necessary
+        // so that the directives can be sorted in a defined order.
+        has_value
+            .then_with(|| self.name.cmp(&other.name))
+            .then_with(|| self.value.cmp(&other.value))
+    }
+}
+
+impl Eq for ValueMatch {}
+impl PartialEq for ValueMatch {
+    fn eq(&self, other: &Self) -> bool {
+        use ValueMatch::*;
+        match (self, other) {
+            (Bool(a), Bool(b)) => a.eq(b),
+            (F64(a), F64(b)) => {
+                debug_assert!(!a.is_nan());
+                debug_assert!(!b.is_nan());
+
+                a.eq(b)
+            },
+            (U64(a), U64(b)) => a.eq(b),
+            (I64(a), I64(b)) => a.eq(b),
+            (NaN, NaN) => true,
+            (Pat(a), Pat(b)) => a.eq(b),
+            _ => false,
+        }
+    }
+}
+
+impl PartialOrd for ValueMatch {
+    fn partial_cmp(&self, rhs: &Self) -> Option<Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
+impl Ord for ValueMatch {
+    fn cmp(&self, rhs: &Self) -> std::cmp::Ordering {
+        use ValueMatch::*;
+        match (self, rhs) {
+            (Bool(this), Bool(that)) => this.cmp(that),
+            (Bool(_), _) => Ordering::Less,
+
+            (F64(this), F64(that)) => this
+                .partial_cmp(that)
+                .expect("`ValueMatch::F64` may not contain `NaN` values"),
+            (F64(_), Bool(_)) => Ordering::Greater,
+            (F64(_), _) => Ordering::Less,
+
+            (NaN, NaN) => Ordering::Equal,
+            (NaN, Bool(_)) | (NaN, F64(_)) => Ordering::Greater,
+            (NaN, _) => Ordering::Less,
+
+            (U64(this), U64(that)) => this.cmp(that),
+            (U64(_), Bool(_)) | (U64(_), F64(_)) | (U64(_), NaN) => Ordering::Greater,
+            (U64(_), _) => Ordering::Less,
+
+            (I64(this), I64(that)) => this.cmp(that),
+            (I64(_), Bool(_)) | (I64(_), F64(_)) | (I64(_), NaN) | (I64(_), U64(_)) => {
+                Ordering::Greater
+            },
+            (I64(_), _) => Ordering::Less,
+
+            (Pat(this), Pat(that)) => this.cmp(that),
+            (Pat(_), _) => Ordering::Greater,
+        }
+    }
+}
+
+impl Eq for PatternMatch {}
+impl PartialEq for PatternMatch {
+    fn eq(&self, other: &Self) -> bool {
+        self.pattern == other.pattern
+    }
+}
+
+impl PartialOrd for PatternMatch {
+    fn partial_cmp(&self, rhs: &Self) -> Option<Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+
+impl Ord for PatternMatch {
+    fn cmp(&self, rhs: &Self) -> Ordering {
+        self.pattern.cmp(&rhs.pattern)
+    }
+}
+
+impl fmt::Display for FieldMatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.name, f)?;
+        if let Some(ref value) = self.value {
+            write!(f, "={}", value)?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for ValueMatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ValueMatch::Bool(ref inner) => fmt::Display::fmt(inner, f),
+            ValueMatch::F64(ref inner) => fmt::Display::fmt(inner, f),
+            ValueMatch::NaN => fmt::Display::fmt(&std::f64::NAN, f),
+            ValueMatch::I64(ref inner) => fmt::Display::fmt(inner, f),
+            ValueMatch::U64(ref inner) => fmt::Display::fmt(inner, f),
+            ValueMatch::Pat(ref inner) => fmt::Display::fmt(&inner.pattern, f),
+        }
     }
 }

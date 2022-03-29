@@ -1,12 +1,10 @@
-use tracing_core::Interest;
-
 use {
     crate::DEFAULT_ENV,
     miette::ErrReport,
     smartstring::alias::String as SmartString,
-    sorted_vec::SortedVec,
+    sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
-    tracing_core::LevelFilter,
+    tracing_core::{Interest, LevelFilter},
 };
 
 mod parse;
@@ -14,7 +12,7 @@ mod parse;
 /// A filter matching the semantics of the `env_logger` crate's filter format.
 #[derive(Debug, Default)]
 pub struct Filter {
-    directives: SortedVec<Directive>,
+    directives: ReverseSortedVec<Directive>,
     regex: Option<regex::Regex>,
 }
 
@@ -59,7 +57,7 @@ impl fmt::Display for Filter {
 impl Filter {
     pub fn new() -> Self {
         Self {
-            directives: SortedVec::new(),
+            directives: ReverseSortedVec::new(),
             regex: None,
         }
     }
@@ -145,7 +143,7 @@ impl Filter {
             return level <= LevelFilter::ERROR;
         }
 
-        for directive in self.directives.iter().rev() {
+        for directive in self.directives.iter() {
             match &directive.target {
                 Some(name) if !target.starts_with(&**name) => {},
                 Some(..) | None => return level <= directive.level,
