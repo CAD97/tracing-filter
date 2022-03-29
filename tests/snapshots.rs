@@ -58,12 +58,12 @@ fn snapshot_legacy_filter_parser() {
             (filter, Some(report)) => {
                 insta::assert_snapshot!(
                     Some("legacy"),
-                    format!("{filter:#?}\n{}", DisplayDiagnostic(&*report)),
+                    format!("{filter}\n{}", DisplayDiagnostic(&*report)),
                     &src
                 )
             },
             (filter, None) => {
-                insta::assert_snapshot!(Some("legacy"), format!("{filter:#?}\n(no warnings)"), &src)
+                insta::assert_snapshot!(Some("legacy"), format!("{filter}\n(no warnings)"), &src)
             },
         }
     }

@@ -408,3 +408,35 @@ impl fmt::Display for DynamicDirective {
         fmt::Display::fmt(&self.level, f)
     }
 }
+
+impl fmt::Display for StaticDirective {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote_any = false;
+        if let Some(ref target) = self.target {
+            fmt::Display::fmt(target, f)?;
+            wrote_any = true;
+        }
+
+        if !self.fields.is_empty() {
+            f.write_str("[")?;
+
+            let mut fields = self.fields.iter();
+            if let Some(field) = fields.next() {
+                write!(f, "{{{}", field)?;
+                for field in fields {
+                    write!(f, ",{}", field)?;
+                }
+                f.write_str("}")?;
+            }
+
+            f.write_str("]")?;
+            wrote_any = true;
+        }
+
+        if wrote_any {
+            f.write_str("=")?;
+        }
+
+        fmt::Display::fmt(&self.level, f)
+    }
+}

@@ -1,5 +1,5 @@
 use {
-    std::{cell::RefCell, collections::HashMap, sync::RwLock},
+    std::{cell::RefCell, collections::HashMap, fmt, sync::RwLock},
     thread_local::ThreadLocal,
     tracing::{Collect, Metadata},
     tracing_core::{callsite, span, Interest, LevelFilter},
@@ -131,5 +131,29 @@ impl<C: Collect> crate::Filter<C> for Filter {
 
         let mut by_id = try_lock!(self.by_id.write());
         by_id.remove(id);
+    }
+}
+
+impl fmt::Display for Filter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut wrote_any = false;
+
+        for directive in self.statics.directives.iter() {
+            if wrote_any {
+                write!(f, ",")?;
+            }
+            write!(f, "{directive}")?;
+            wrote_any = true;
+        }
+
+        for directive in self.dynamics.directives.iter() {
+            if wrote_any {
+                write!(f, ",")?;
+            }
+            write!(f, "{directive}")?;
+            wrote_any = true;
+        }
+
+        Ok(())
     }
 }

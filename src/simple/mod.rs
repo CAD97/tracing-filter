@@ -41,7 +41,7 @@ impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for directive in &*self.directives {
             if let Some(target) = &directive.target {
-                write!(f, "{}=", target)?;
+                write!(f, "{target}=")?;
             }
             write!(f, "{},", directive.level)?;
         }
