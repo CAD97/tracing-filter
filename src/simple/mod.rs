@@ -155,7 +155,7 @@ impl Filter {
 }
 
 impl<C> crate::Filter<C> for Filter {
-    fn interest(&self, metadata: &tracing::Metadata<'_>) -> tracing_core::Interest {
+    fn callsite_enabled(&self, metadata: &tracing::Metadata<'_>) -> tracing_core::Interest {
         if self.is_enabled(metadata) {
             Interest::always()
         } else {
@@ -166,7 +166,7 @@ impl<C> crate::Filter<C> for Filter {
     fn enabled(
         &self,
         metadata: &tracing::Metadata<'_>,
-        _ctx: tracing_subscriber::subscribe::Context<'_, C>,
+        _ctx: &tracing_subscriber::subscribe::Context<'_, C>,
     ) -> bool {
         self.is_enabled(metadata)
     }

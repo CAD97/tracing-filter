@@ -40,7 +40,7 @@ impl Filter {
 }
 
 impl<C: Collect> crate::Filter<C> for Filter {
-    fn interest(&self, metadata: &Metadata<'_>) -> tracing_core::Interest {
+    fn callsite_enabled(&self, metadata: &Metadata<'_>) -> tracing_core::Interest {
         if self.has_dynamics() && metadata.is_span() {
             // If this metadata describes a span, first, check if there is a
             // dynamic filter that should be constructed for it. If so, it
@@ -59,7 +59,7 @@ impl<C: Collect> crate::Filter<C> for Filter {
         }
     }
 
-    fn enabled(&self, metadata: &Metadata<'_>, _ctx: Context<'_, C>) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, C>) -> bool {
         let level = metadata.level();
 
         // Is it possible for a dynamic filter directive to enable this event?
@@ -123,14 +123,14 @@ impl<C: Collect> crate::Filter<C> for Filter {
         }
     }
 
-    fn on_close(&self, id: &span::Id, _ctx: Context<'_, C>) {
+    fn on_close(&self, id: span::Id, _ctx: Context<'_, C>) {
         // If we don't need a write lock, avoid taking one.
-        if !self.cares_about_span(id) {
+        if !self.cares_about_span(&id) {
             return;
         }
 
         let mut by_id = try_lock!(self.by_id.write());
-        by_id.remove(id);
+        by_id.remove(&id);
     }
 }
 
