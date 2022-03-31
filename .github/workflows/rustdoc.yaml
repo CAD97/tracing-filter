@@ -2,7 +2,7 @@ name: rustdoc
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   cargo-doc:
