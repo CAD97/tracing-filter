@@ -35,7 +35,8 @@ fn field_filter_events() {
 }
 
 #[test]
-#[ignore = "passes when run alone; fails when run with whole suite >>>.<<<"]
+// flaky in upstream as well
+#[ignore = "flaky; succeeds alone, fails more often the more other tests in suite"]
 fn field_filter_spans() {
     let filter = "[{enabled=true}]=debug".parse().unwrap();
     test(filter, |mock| {
