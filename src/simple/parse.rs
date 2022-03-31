@@ -130,11 +130,10 @@ struct Warnings {
 
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
-pub enum Warning {
+enum Warning {
     #[error("invalid level filter specified")]
     #[diagnostic(
         code(tracing_filter::simple::InvalidLevel),
-        url(docsrs),
         help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE")
     )]
     InvalidLevel {
@@ -142,7 +141,7 @@ pub enum Warning {
         span: SourceSpan,
     },
     #[error("invalid regex specified")]
-    #[diagnostic(code(tracing_filter::simple::InvalidRegex), url(docsrs))]
+    #[diagnostic(code(tracing_filter::simple::InvalidRegex))]
     InvalidRegex {
         // no, we are not going to parse the formatted regex error
         // in order to translate it into miette span/labels
@@ -155,11 +154,10 @@ pub enum Warning {
 
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(error))]
-pub enum Error {
+enum Error {
     #[error("logging spec has too many `/`s")]
     #[diagnostic(
         code(tracing_filter::simple::MultipleSlash),
-        url(docsrs),
         help("regex filters may not contain `/`")
     )]
     MultipleSlash {

@@ -19,7 +19,9 @@ mod subscriber;
 
 pub(crate) const DEFAULT_ENV: &str = "RUST_LOG";
 
-pub use self::subscriber::{Filter, FilterSubscriber};
+pub use self::subscriber::FilterSubscriber;
+#[doc(no_inline)]
+pub use tracing_subscriber::subscribe::Filter;
 
 #[cfg(feature = "smallvec")]
 type SmallVec<T> = smallvec::SmallVec<[T; 8]>;

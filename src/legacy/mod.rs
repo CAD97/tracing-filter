@@ -1,5 +1,12 @@
+//! Support for legacy filters, which match tracing-subscriber's legacy
+//! `EnvFilter` format.
+//!
+//! [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html
+
 use {
-    std::{cell::RefCell, collections::HashMap, fmt, sync::RwLock},
+    crate::DEFAULT_ENV,
+    miette::ErrReport,
+    std::{cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt, sync::RwLock},
     thread_local::ThreadLocal,
     tracing::{Collect, Metadata},
     tracing_core::{callsite, span, Interest, LevelFilter},
@@ -12,7 +19,9 @@ mod parse;
 #[cfg(test)]
 mod tests;
 
-/// A filter matching tracing's legacy EnvFilter format.
+/// A filter matching tracing-subscriber's legacy [`EnvFilter`] format.
+///
+/// [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html
 #[derive(Debug)]
 pub struct Filter {
     scope: ThreadLocal<RefCell<Vec<LevelFilter>>>,
@@ -23,10 +32,30 @@ pub struct Filter {
 }
 
 impl Filter {
+    /// Create a new filter, ignoring any invalid directives. It is highly
+    /// recommended you use [`Self::parse`] instead, and display the warnings for
+    /// ignored directives.
     pub fn new(spec: impl AsRef<str> + Into<String>) -> Self {
         Self::parse(spec).0
     }
 
+    /// Create a filter from the default `RUST_LOG` environment.
+    pub fn from_default_env() -> (Self, Option<ErrReport>) {
+        Self::from_env(DEFAULT_ENV)
+    }
+
+    /// Create a filter from the environment.
+    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<ErrReport>) {
+        if let Ok(s) = env::var(key) {
+            let (filter, err) = Self::parse(s);
+            (filter, err)
+        } else {
+            Self::parse("")
+        }
+    }
+}
+
+impl Filter {
     fn has_dynamics(&self) -> bool {
         !self.dynamics.directives.is_empty()
     }

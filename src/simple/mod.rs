@@ -1,7 +1,9 @@
+//! Support for simple filters, which match `env_logger`'s filter format.
+
 use {
     crate::DEFAULT_ENV,
     miette::ErrReport,
-    smartstring::alias::String as SmartString,
+    smartstring::alias::String,
     sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter},
@@ -18,7 +20,7 @@ pub struct Filter {
 
 #[derive(Debug, PartialEq, Eq)]
 struct Directive {
-    target: Option<SmartString>,
+    target: Option<String>,
     level: LevelFilter,
 }
 
@@ -55,26 +57,41 @@ impl fmt::Display for Filter {
 }
 
 impl Filter {
-    pub fn new() -> Self {
+    /// Create a new filter, ignoring any invalid directives. It is highly
+    /// recommended you use [`Self::parse`] instead, and display the warnings for
+    /// ignored directives.
+    pub fn new(spec: &str) -> Self {
+        spec.parse().unwrap_or_else(|_| Self::empty())
+    }
+
+    /// Create an empty filter (i.e. one that filters nothing out).
+    pub fn empty() -> Self {
         Self {
             directives: ReverseSortedVec::new(),
             regex: None,
         }
     }
 
+    /// Create a filter from the default `RUST_LOG` environment.
+    pub fn from_default_env() -> (Self, Option<ErrReport>) {
+        Self::from_env(DEFAULT_ENV)
+    }
+
+    /// Create a filter from the environment.
     pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<ErrReport>) {
         if let Ok(s) = env::var(key) {
             let (filter, err) = Self::parse(s);
             (filter.unwrap_or_default(), err)
         } else {
-            (Self::new(), None)
+            (Self::empty(), None)
         }
     }
+}
 
-    pub fn from_default_env() -> (Self, Option<ErrReport>) {
-        Self::from_env(DEFAULT_ENV)
-    }
+impl Filter {
+    // TODO: parse[_default]_env; configure default then override by environment
 
+    /// Add a new filter directive.
     pub fn add_directive<'a>(
         &mut self,
         target: Option<impl Into<Cow<'a, str>>>,
@@ -85,6 +102,7 @@ impl Filter {
         self.directives.insert(Directive { target, level });
     }
 
+    /// Builder-API version of [`Self::add_directive`].
     pub fn with_directive<'a>(
         mut self,
         target: Option<impl Into<Cow<'a, str>>>,
@@ -94,15 +112,18 @@ impl Filter {
         self
     }
 
+    /// Add a new filter directive at the given level.
     pub fn add_level(&mut self, level: impl Into<LevelFilter>) {
         self.add_directive(None::<&str>, level);
     }
 
+    /// Builder-API version of [`Self::add_level`].
     pub fn with_level(mut self, level: impl Into<LevelFilter>) -> Self {
         self.add_level(level);
         self
     }
 
+    /// Add a new filter directive for a given target at a given level.
     pub fn add_target<'a>(
         &mut self,
         target: impl Into<Cow<'a, str>>,
@@ -111,6 +132,7 @@ impl Filter {
         self.add_directive(Some(target), level);
     }
 
+    /// Builder-API version of [`Self::add_target`].
     pub fn with_target<'a>(
         mut self,
         target: impl Into<Cow<'a, str>>,
@@ -120,6 +142,11 @@ impl Filter {
         self
     }
 
+    /// Add a regex filter to this filter.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a regex filter has already been set.
     pub fn add_regex(&mut self, regex: regex::Regex) {
         match &self.regex {
             Some(_) => panic!("set `tracing_filter::simple::Filter` regex that was already set"),
@@ -127,6 +154,7 @@ impl Filter {
         }
     }
 
+    /// Builder-API version of [`Self::add_regex`].
     pub fn with_regex(mut self, regex: regex::Regex) -> Self {
         self.add_regex(regex);
         self

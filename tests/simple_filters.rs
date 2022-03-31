@@ -17,7 +17,7 @@ fn test(filter: Filter, f: impl FnOnce(&MockSubscribe)) {
 
 #[test]
 fn filter_info() {
-    let filter = Filter::new().with_level(LevelFilter::INFO);
+    let filter = Filter::empty().with_level(LevelFilter::INFO);
     test(filter, |mock| {
         mock.expect_event();
         tracing::info!(target: "crate1", "");
@@ -28,7 +28,7 @@ fn filter_info() {
 
 #[test]
 fn filter_beginning_longest_match() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate2::mod", LevelFilter::DEBUG)
         .with_target("crate1::mod1", LevelFilter::WARN);
@@ -320,7 +320,7 @@ fn parse_default_bare_level_debug_mixed() {
 
 #[test]
 fn match_full_path() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
@@ -337,7 +337,7 @@ fn match_full_path() {
 
 #[test]
 fn no_match() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
@@ -348,7 +348,7 @@ fn no_match() {
 
 #[test]
 fn match_beginning() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
@@ -359,7 +359,7 @@ fn match_beginning() {
 
 #[test]
 fn match_beginning_longest_match() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_target("crate2", LevelFilter::INFO)
         .with_target("crate2::mod", LevelFilter::DEBUG)
         .with_target("crate1::mod1", LevelFilter::WARN);
@@ -373,7 +373,7 @@ fn match_beginning_longest_match() {
 
 #[test]
 fn match_default() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_level(LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::WARN);
     test(filter, |mock| {
@@ -386,7 +386,7 @@ fn match_default() {
 
 #[test]
 fn zero_level() {
-    let filter = Filter::new()
+    let filter = Filter::empty()
         .with_level(LevelFilter::INFO)
         .with_target("crate1::mod1", LevelFilter::OFF);
     test(filter, |mock| {

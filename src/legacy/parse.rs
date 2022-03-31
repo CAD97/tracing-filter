@@ -16,7 +16,9 @@ use {
 
 impl FromStr for Filter {
     type Err = ErrReport;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+    /// Parse a filter from its string representation, discarding warnings.
+    fn from_str(s: &str) -> miette::Result<Self> {
         let (filter, errs) = Self::parse(s);
         if let Some(errs) = errs {
             Err(errs)
@@ -305,11 +307,13 @@ struct Warnings {
 #[diagnostic(severity(warning))]
 struct IgnoredDirectives(#[related] Vec<IgnoredDirective>);
 
+// TODO(rust-lang/rust#63063): public for Directive as FromStr;
+// should be erased to impl Diagnostic for that impl.
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
-pub enum IgnoredDirective {
+pub(super) enum IgnoredDirective {
     #[error("invalid target specified")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidTarget), url(docsrs))]
+    #[diagnostic(code(tracing_filter::legacy::InvalidTarget))]
     InvalidTarget {
         #[label]
         span: SourceSpan,
@@ -317,7 +321,6 @@ pub enum IgnoredDirective {
     #[error("invalid level filter specified")]
     #[diagnostic(
         code(tracing_filter::legacy::InvalidLevel),
-        url(docsrs),
         help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE")
     )]
     InvalidLevel {
@@ -325,7 +328,7 @@ pub enum IgnoredDirective {
         span: SourceSpan,
     },
     #[error("invalid regex specified")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidRegex), url(docsrs))]
+    #[diagnostic(code(tracing_filter::legacy::InvalidRegex))]
     InvalidRegex {
         // no, we are not going to parse the formatted regex error
         // in order to translate it into miette span/labels
@@ -335,13 +338,13 @@ pub enum IgnoredDirective {
         span: SourceSpan,
     },
     #[error("invalid trailing characters")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidTrailing), url(docsrs))]
+    #[diagnostic(code(tracing_filter::legacy::InvalidTrailing))]
     InvalidTrailing {
         #[label]
         span: SourceSpan,
     },
     #[error("unclosed span directive")]
-    #[diagnostic(code(tracing_filter::legacy::UnclosedSpan), url(docsrs))]
+    #[diagnostic(code(tracing_filter::legacy::UnclosedSpan))]
     UnclosedSpan {
         #[label("opened here")]
         open: SourceSpan,
