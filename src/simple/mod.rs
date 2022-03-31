@@ -2,8 +2,8 @@
 
 use {
     crate::DEFAULT_ENV,
+    compact_str::CompactStr,
     miette::ErrReport,
-    smartstring::alias::String,
     sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter},
@@ -20,7 +20,7 @@ pub struct Filter {
 
 #[derive(Debug, PartialEq, Eq)]
 struct Directive {
-    target: Option<String>,
+    target: Option<CompactStr>,
     level: LevelFilter,
 }
 

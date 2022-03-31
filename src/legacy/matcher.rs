@@ -1,7 +1,7 @@
 use {
     crate::SmallVec,
+    compact_str::CompactStr,
     matchers::Pattern,
-    smartstring::alias::String,
     std::{
         cmp::Ordering,
         collections::HashMap,
@@ -20,7 +20,7 @@ pub(super) struct MatchSet<T> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct FieldMatch {
-    pub(super) name: String,
+    pub(super) name: CompactStr,
     pub(super) value: Option<ValueMatch>,
 }
 
@@ -54,7 +54,7 @@ pub(super) enum ValueMatch {
 #[derive(Debug, Clone)]
 pub(super) struct PatternMatch {
     pub(super) matcher: Pattern,
-    pub(super) pattern: String,
+    pub(super) pattern: CompactStr,
 }
 
 pub(super) trait Match {

@@ -1,7 +1,7 @@
 use {
     super::matcher::{CallsiteMatch, CallsiteMatcher, FieldMatch, Match},
     crate::SmallVec,
-    smartstring::alias::String,
+    compact_str::CompactStr,
     sorted_vec::SortedSet,
     std::{cmp::Ordering, collections::HashMap, fmt},
     tracing::Metadata,
@@ -18,9 +18,9 @@ pub(super) type Dynamics = DirectiveSet<DynamicDirective>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct DynamicDirective {
-    pub(super) span: Option<String>,
+    pub(super) span: Option<CompactStr>,
     pub(super) fields: SmallVec<FieldMatch>,
-    pub(super) target: Option<String>,
+    pub(super) target: Option<CompactStr>,
     pub(super) level: LevelFilter,
 }
 
@@ -28,8 +28,8 @@ pub(super) type Statics = DirectiveSet<StaticDirective>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct StaticDirective {
-    pub(super) target: Option<String>,
-    pub(super) fields: SmallVec<String>,
+    pub(super) target: Option<CompactStr>,
+    pub(super) fields: SmallVec<CompactStr>,
     pub(super) level: LevelFilter,
 }
 
@@ -123,7 +123,7 @@ impl Match for DynamicDirective {
         // Do we have a name filter, and does it match the metadata's name?
         // TODO(eliza): put name globbing here?
         if let Some(ref name) = self.span {
-            if name != metadata.name() {
+            if &**name != metadata.name() {
                 return false;
             }
         }
@@ -287,8 +287,8 @@ impl Ord for DynamicDirective {
         let ordering = self
             .target
             .as_ref()
-            .map(String::len)
-            .cmp(&other.target.as_ref().map(String::len))
+            .map(CompactStr::len)
+            .cmp(&other.target.as_ref().map(CompactStr::len))
             // Next compare based on the presence of span names.
             .then_with(|| self.span.is_some().cmp(&other.span.is_some()))
             // Then we compare how many fields are defined by each
@@ -345,8 +345,8 @@ impl Ord for StaticDirective {
         let ordering = self
             .target
             .as_ref()
-            .map(String::len)
-            .cmp(&other.target.as_ref().map(String::len))
+            .map(CompactStr::len)
+            .cmp(&other.target.as_ref().map(CompactStr::len))
             // Then we compare how many field names are matched by each directive.
             .then_with(|| self.fields.len().cmp(&other.fields.len()))
             // Finally, we fall back to lexicographical ordering if the directives are

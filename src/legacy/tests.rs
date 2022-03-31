@@ -204,7 +204,7 @@ fn directive_ordering_by_target_len() {
     ];
     let sorted = dirs
         .iter()
-        .map(|d| d.target.as_ref().unwrap())
+        .map(|d| d.target.as_deref().unwrap())
         .collect::<Vec<_>>();
 
     assert_eq!(expected, sorted);
@@ -219,7 +219,7 @@ fn directive_ordering_by_span() {
     let expected = vec!["baz::quux", "bar", "foo", "a"];
     let sorted = dirs
         .iter()
-        .map(|d| d.target.as_ref().unwrap())
+        .map(|d| d.target.as_deref().unwrap())
         .collect::<Vec<_>>();
 
     assert_eq!(expected, sorted);
@@ -268,7 +268,7 @@ fn directive_ordering_by_field_num() {
     let expected = vec!["baz::quux", "bar", "foo", "c", "b", "a"];
     let sorted = dirs
         .iter()
-        .map(|d| d.target.as_ref().unwrap())
+        .map(|d| d.target.as_deref().unwrap())
         .collect::<Vec<_>>();
 
     assert_eq!(expected, sorted);
