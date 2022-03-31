@@ -38,17 +38,19 @@ impl Filter {
     }
 
     fn parse_inner(spec: &str) -> (Filter, Option<ErrReport>) {
+        let recover_span = |substr: &str| {
+            let offset = substr.as_ptr() as usize - spec.as_ptr() as usize;
+            offset..offset + substr.len()
+        };
+
         let mut directives = Vec::new();
         let mut ignored = Vec::new();
 
-        let mut i = 0;
-        while i < spec.len() {
-            let j = spec[i..].find(',').map(|j| i + j).unwrap_or(spec.len());
-            match DynamicDirective::parse(spec, i..j) {
+        for directive_spec in spec.split(',') {
+            match DynamicDirective::parse(directive_spec, recover_span) {
                 Ok(directive) => directives.push(directive),
                 Err(directive) => ignored.push(directive),
             }
-            i = j + 1;
         }
 
         let ignored = Some(ignored)
@@ -123,14 +125,18 @@ impl Filter {
 impl FromStr for DynamicDirective {
     type Err = IgnoredDirective;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::parse(s, 0..s.len())
+        Self::parse(s, |substr: &str| {
+            let offset = substr.as_ptr() as usize - s.as_ptr() as usize;
+            offset..offset + substr.len()
+        })
     }
 }
 
 impl DynamicDirective {
-    fn parse(src: &str, range: Range<usize>) -> Result<Self, IgnoredDirective> {
-        let spec = &src[range.start..range.end];
-
+    fn parse(
+        mut spec: &str,
+        recover_span: impl Fn(&str) -> Range<usize>,
+    ) -> Result<Self, IgnoredDirective> {
         // if it can be a global level filter, it is
         // ^(?P<global_level>(?i:trace|debug|info|warn|error|off|[0-5]))$
         if let Ok(level) = spec.parse() {
@@ -141,8 +147,6 @@ impl DynamicDirective {
                 target: None,
             });
         }
-
-        let mut pos = 0;
 
         // target and span parts are order insignificant
         // ^(?:(?P<target>[\w:-]+)|(?P<span>\[[^\]]*\])){1,2}
@@ -164,21 +168,18 @@ impl DynamicDirective {
             Lazy::new(|| Regex::new(r"[[:word:]][[[:word:]]\.]*(?:=[^,]+)?(?:,|$)").unwrap());
 
         let mut first_time = true;
-        let mut parse_target_span = |pos: &mut usize| -> Result<(), IgnoredDirective> {
-            if let Some(m) = TARGET_RE.find(&spec[*pos..]) {
+        let mut parse_target_span = |spec: &mut &str| -> Result<(), IgnoredDirective> {
+            if let Some(m) = TARGET_RE.find(spec) {
                 // target
                 debug_assert_eq!(m.start(), 0);
-                target = Some(spec[*pos..][..m.end()].into());
-                *pos += m.end();
-            } else if spec[*pos..].starts_with('[') {
+                target = Some(m.as_str().into());
+                *spec = &spec[m.end()..];
+            } else if spec.starts_with('[') {
                 // span
-                let span_start = spec[*pos..]
-                    .find(|c: char| c != '[')
-                    .map(|p| *pos + p)
-                    .unwrap_or(spec.len());
-                match spec[span_start..].find(']') {
-                    Some(span_len) => {
-                        let m = SPAN_RE.captures(&spec[span_start..][..span_len]).unwrap();
+                *spec = spec.trim_start_matches('['); // yes, this is upstream behavior
+                match spec.split_once(']') {
+                    Some((span_spec, rest)) => {
+                        let m = SPAN_RE.captures(span_spec).unwrap();
                         span = m.name("name").map(|m| m.as_str().into());
                         fields = m
                             .name("fields")
@@ -189,9 +190,7 @@ impl DynamicDirective {
                                         FieldMatch::parse(m.as_str()).map_err(|error| {
                                             IgnoredDirective::InvalidRegex {
                                                 error,
-                                                span: (range.start + span_start + m.start()
-                                                    ..range.start + span_start + m.end())
-                                                    .into(),
+                                                span: recover_span(m.as_str()).into(),
                                             }
                                         })
                                     })
@@ -199,18 +198,19 @@ impl DynamicDirective {
                             })
                             .transpose()?
                             .unwrap_or_default();
-                        *pos = span_start + span_len + 1;
+                        *spec = rest;
                     },
                     None => {
+                        let spec = recover_span(spec);
                         return Err(IgnoredDirective::UnclosedSpan {
-                            open: (range.start + span_start..range.start + span_start + 1).into(),
-                            close: (range.end..range.end).into(),
-                        })
+                            open: (spec.start - 1..spec.start).into(),
+                            close: (spec.end..spec.end).into(),
+                        });
                     },
                 }
             } else if first_time {
                 return Err(IgnoredDirective::InvalidTarget {
-                    span: (range.start + *pos..range.end).into(),
+                    span: recover_span(spec).into(),
                 });
             }
 
@@ -218,52 +218,37 @@ impl DynamicDirective {
             Ok(())
         };
 
-        parse_target_span(&mut pos)?;
-        if !spec[pos..].starts_with('=') {
-            parse_target_span(&mut pos)?;
+        parse_target_span(&mut spec)?;
+        if !spec.starts_with('=') {
+            parse_target_span(&mut spec)?;
         }
 
         // level or nothing
         // (?:=(?P<level>(?i:trace|debug|info|warn|error|off|[0-5]))?)?$
-        if spec[pos..].starts_with('=') {
-            pos += 1;
-            if pos == spec.len() {
-                Ok(DynamicDirective {
-                    span,
-                    fields,
-                    target,
-                    level: LevelFilter::TRACE,
-                })
-            } else {
-                match spec[pos..].parse() {
+        match spec {
+            "" | "=" => Ok(DynamicDirective {
+                span,
+                fields,
+                target,
+                level: LevelFilter::TRACE,
+            }),
+            _ if spec.starts_with('=') => {
+                let spec = &spec[1..];
+                match spec.parse() {
                     Ok(level) => Ok(DynamicDirective {
                         span,
                         fields,
                         target,
                         level,
                     }),
-                    Err(_) if pos == range.end => Ok(DynamicDirective {
-                        span,
-                        fields,
-                        target,
-                        level: LevelFilter::TRACE,
-                    }),
                     Err(_) => Err(IgnoredDirective::InvalidLevel {
-                        span: (range.start + pos..range.end).into(),
+                        span: recover_span(spec).into(),
                     }),
                 }
-            }
-        } else if spec.len() == pos {
-            Ok(DynamicDirective {
-                span,
-                fields,
-                target,
-                level: LevelFilter::TRACE,
-            })
-        } else {
-            Err(IgnoredDirective::InvalidTrailing {
-                span: (range.start + pos..range.end).into(),
-            })
+            },
+            _ => Err(IgnoredDirective::InvalidTrailing {
+                span: recover_span(spec).into(),
+            }),
         }
     }
 }

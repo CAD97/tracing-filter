@@ -2,7 +2,7 @@ use {
     super::{Directive, Filter},
     miette::{Diagnostic, ErrReport, SourceSpan},
     sorted_vec::ReverseSortedVec,
-    std::{ops::Range, str::FromStr},
+    std::str::FromStr,
     thiserror::Error,
     tracing_core::LevelFilter,
 };
@@ -22,10 +22,10 @@ impl Filter {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0
 
-        fn recover_span(spec: &str, substr: &str) -> Range<usize> {
+        let recover_span = |substr: &str| {
             let offset = substr.as_ptr() as usize - spec.as_ptr() as usize;
             offset..offset + substr.len()
-        }
+        };
 
         let mut directives = ReverseSortedVec::new();
         let mut parts = spec.split('/');
@@ -33,8 +33,8 @@ impl Filter {
         let regex = parts.next();
 
         if let Some(after) = parts.next() {
-            let regex = recover_span(spec, regex.unwrap());
-            let after = recover_span(spec, after);
+            let regex = recover_span(regex.unwrap());
+            let after = recover_span(after);
             let error = Error::MultipleSlash {
                 slash: (after.start - 1..after.start).into(),
                 regex: (regex.start..spec.len()).into(),
@@ -65,14 +65,14 @@ impl Filter {
                             Ok(num) => (num, Some(part0)),
                             _ => {
                                 warnings.push(Warning::InvalidLevel {
-                                    span: recover_span(spec, part1).into(),
+                                    span: recover_span(part1).into(),
                                 });
                                 continue;
                             },
                         },
                         (Some(_part0), Some(part1), Some(_part2)) => {
-                            let part1 = recover_span(spec, part1);
-                            let dir = recover_span(spec, dir);
+                            let part1 = recover_span(part1);
+                            let dir = recover_span(dir);
                             warnings.push(Warning::InvalidLevel {
                                 span: (part1.start..dir.end).into(),
                             });
@@ -92,7 +92,7 @@ impl Filter {
             Err(error) => {
                 warnings.push(Warning::InvalidRegex {
                     error,
-                    span: recover_span(spec, regex).into(),
+                    span: recover_span(regex).into(),
                 });
                 None
             },
