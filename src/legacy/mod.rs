@@ -9,6 +9,8 @@ use {
 mod directive;
 mod matcher;
 mod parse;
+#[cfg(test)]
+mod tests;
 
 /// A filter matching tracing's legacy EnvFilter format.
 #[derive(Debug)]
@@ -21,6 +23,10 @@ pub struct Filter {
 }
 
 impl Filter {
+    pub fn new(spec: impl AsRef<str> + Into<String>) -> Self {
+        Self::parse(spec).0
+    }
+
     fn has_dynamics(&self) -> bool {
         !self.dynamics.directives.is_empty()
     }
@@ -40,25 +46,6 @@ impl Filter {
 }
 
 impl<C: Collect> crate::Filter<C> for Filter {
-    fn callsite_enabled(&self, metadata: &Metadata<'_>) -> tracing_core::Interest {
-        if self.has_dynamics() && metadata.is_span() {
-            // If this metadata describes a span, first, check if there is a
-            // dynamic filter that should be constructed for it. If so, it
-            // should always be enabled, since it influences filtering.
-            if let Some(matcher) = self.dynamics.matcher(metadata) {
-                let mut by_cs = try_lock!(self.by_cs.write(), else return self.base_interest());
-                by_cs.insert(metadata.callsite(), matcher);
-                return Interest::always();
-            }
-        }
-
-        if self.statics.enabled(metadata) {
-            Interest::always()
-        } else {
-            self.base_interest()
-        }
-    }
-
     fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, C>) -> bool {
         let level = metadata.level();
 
@@ -94,11 +81,46 @@ impl<C: Collect> crate::Filter<C> for Filter {
         self.statics.enabled(metadata)
     }
 
+    fn callsite_enabled(&self, metadata: &Metadata<'_>) -> tracing_core::Interest {
+        if self.has_dynamics() && metadata.is_span() {
+            // If this metadata describes a span, first, check if there is a
+            // dynamic filter that should be constructed for it. If so, it
+            // should always be enabled, since it influences filtering.
+            if let Some(matcher) = self.dynamics.matcher(metadata) {
+                let mut by_cs = try_lock!(self.by_cs.write(), else return self.base_interest());
+                by_cs.insert(metadata.callsite(), matcher);
+                return Interest::always();
+            }
+        }
+
+        if self.statics.enabled(metadata) {
+            Interest::always()
+        } else {
+            self.base_interest()
+        }
+    }
+
+    fn max_level_hint(&self) -> Option<LevelFilter> {
+        if self.dynamics.has_value_filters() {
+            // If we perform any filtering on span field *values*, we will
+            // enable *all* spans, because their field values are not known
+            // until recording.
+            return Some(LevelFilter::TRACE);
+        }
+        std::cmp::max(self.statics.level.into(), self.dynamics.level.into())
+    }
+
     fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, _: Context<'_, C>) {
         let by_cs = try_lock!(self.by_cs.read());
         if let Some(cs) = by_cs.get(&attrs.metadata().callsite()) {
             let span = cs.to_span_matcher(attrs);
             try_lock!(self.by_id.write()).insert(id.clone(), span);
+        }
+    }
+
+    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, C>) {
+        if let Some(span) = try_lock!(self.by_id.read()).get(id) {
+            span.record_update(values);
         }
     }
 
@@ -108,12 +130,6 @@ impl<C: Collect> crate::Filter<C> for Filter {
         // much less efficient...
         if let Some(span) = try_lock!(self.by_id.read()).get(id) {
             self.scope.get_or_default().borrow_mut().push(span.level());
-        }
-    }
-
-    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, C>) {
-        if let Some(span) = try_lock!(self.by_id.read()).get(id) {
-            span.record_update(values);
         }
     }
 

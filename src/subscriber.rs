@@ -38,8 +38,7 @@ impl<C: Collect, F: 'static + Filter<C>> Subscribe<C> for FilterSubscriber<F> {
     }
 
     fn max_level_hint(&self) -> Option<tracing_core::LevelFilter> {
-        // TODO: implement `max_level_hint`s
-        None
+        self.filter.max_level_hint()
     }
 
     fn on_record(

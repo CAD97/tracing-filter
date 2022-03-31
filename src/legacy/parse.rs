@@ -1,22 +1,30 @@
-use crate::legacy::matcher::PatternMatch;
-
-use super::directive::StaticDirective;
-
 use {
     super::{
-        directive::DynamicDirective,
-        matcher::{FieldMatch, ValueMatch},
+        directive::{DynamicDirective, StaticDirective},
+        matcher::{FieldMatch, PatternMatch, ValueMatch},
         Filter,
     },
     crate::SmallVec,
     miette::{Diagnostic, ErrReport, SourceSpan},
     once_cell::sync::Lazy,
     regex::Regex,
-    std::ops::Range,
+    std::{ops::Range, str::FromStr},
     thiserror::Error,
     tracing::level_filters::STATIC_MAX_LEVEL,
     tracing_core::{Level, LevelFilter},
 };
+
+impl FromStr for Filter {
+    type Err = ErrReport;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (filter, errs) = Self::parse(s);
+        if let Some(errs) = errs {
+            Err(errs)
+        } else {
+            Ok(filter)
+        }
+    }
+}
 
 impl Filter {
     /// Parse a filter from its string representation.
@@ -109,6 +117,13 @@ impl Filter {
             by_cs: Default::default(),
         };
         (filter, advice)
+    }
+}
+
+impl FromStr for DynamicDirective {
+    type Err = IgnoredDirective;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s, 0..s.len())
     }
 }
 

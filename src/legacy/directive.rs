@@ -8,7 +8,7 @@ use {
     tracing_core::LevelFilter,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(super) struct DirectiveSet<T: Ord> {
     pub(super) directives: SortedSet<T>,
     pub(super) level: LevelFilter,
@@ -211,7 +211,7 @@ impl Match for StaticDirective {
 impl Statics {
     pub(super) fn enabled(&self, metadata: &Metadata<'_>) -> bool {
         let level = metadata.level();
-        if self.level >= *level {
+        if self.level < *level {
             return false;
         }
         match self.directives_for(metadata).next() {
@@ -252,6 +252,11 @@ impl Dynamics {
         } else {
             None
         }
+    }
+
+    pub(super) fn has_value_filters(&self) -> bool {
+        self.directives()
+            .any(|d| d.fields.iter().any(|f| f.value.is_some()))
     }
 }
 
