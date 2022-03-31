@@ -105,7 +105,7 @@ impl Filter {
 
         let (dynamics, mut statics) = DynamicDirective::make_tables(directives);
 
-        if statics.directives.is_empty() && !dynamics.directives.is_empty() {
+        if statics.directives.is_empty() && dynamics.directives.is_empty() {
             statics.add(StaticDirective::default());
         }
 

@@ -78,11 +78,7 @@ impl MockSubscribe {
     }
 
     pub fn assert_clear(&self) {
-        if self.expect_event.load(Ordering::SeqCst) != 0 {
-            panic!("[{}] did not receive expected event", self.name);
-        }
-        if self.expect_span.load(Ordering::SeqCst) != 0 {
-            panic!("[{}] did not receive expected span", self.name);
-        }
+        self.expect_no_event();
+        self.expect_no_span();
     }
 }
