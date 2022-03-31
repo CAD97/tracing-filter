@@ -34,6 +34,37 @@ fn field_filter_events() {
     });
 }
 
+/*
+filter: [{enabled=true}]=debug
+old:                                                | new:
+    statics: DirectiveSet {                         |     statics: DirectiveSet {
+        directives: [                               |         directives: [
+                                                    ~             StaticDirective {
+                                                    ~                 target: None,
+                                                    ~                 fields: [],
+                                                    ~                 level: LevelFilter::ERROR,
+                                                    ~             },
+        ],                                          |         ],
+        max_level: LevelFilter::OFF,                ~         level: LevelFilter::ERROR,
+    },                                              |     },
+    dynamics: DirectiveSet {                        |     dynamics: DirectiveSet {
+        directives: [                               |         directives: [
+            Directive {                             |             DynamicDirective {
+                in_span: None,                      |                 span: None,
+                fields: [                           |                 fields: [
+                    Match {                         |                     FieldMatch {
+                        name: "enabled",            |                         name: "enabled",
+                        value: Some(Bool(true)),    |                         value: Some(Bool(true)),
+                    },                              |                     },
+                ],                                  |                 ],
+                target: None,                       |                 target: None,
+                level: LevelFilter::DEBUG,          |                 level: LevelFilter::DEBUG,
+            },                                      |             },
+        ],                                          |         ],
+        max_level: LevelFilter::DEBUG,              |         level: LevelFilter::DEBUG,
+    },                                              |     },
+*/
+
 #[test]
 fn field_filter_spans() {
     let filter = "[{enabled=true}]=debug".parse().unwrap();
@@ -86,7 +117,6 @@ fn record_after_created() {
 }
 
 #[test]
-#[ignore = "FIXME: failing for some reason"] // XXX: different from upstream?
 fn log_is_enabled() {
     mod my_module {
         use super::*;
@@ -131,11 +161,12 @@ fn log_is_enabled() {
     // level, which can only be set once.
     collector.init();
 
+    my_module::test_log_enabled();
     my_module::test_records(&mock);
+
     mock.expect_no_event();
     log::info!("this is disabled");
 
-    my_module::test_log_enabled();
     assert!(
         !log::log_enabled!(log::Level::Info),
         "info should not be enabled outside `my_module`"
