@@ -1,0 +1,23 @@
+name: Dependencies audit
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUSTUP_MAX_RETRIES: 10
+  RUST_BACKTRACE: short
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Cargo Audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ github.token }}

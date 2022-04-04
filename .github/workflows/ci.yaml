@@ -1,0 +1,224 @@
+name: CI
+on:
+  pull_request:
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUSTUP_MAX_RETRIES: 10
+  RUST_BACKTRACE: short
+
+jobs:
+
+  style:
+    name: Check lints
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Pinned version to avoid unrelated breakage in PRs
+      - name: Install 1.59 toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.59
+          profile: minimal
+          components: clippy
+          override: true
+
+      - name: Generate lockfile for cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Check style
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features --all-targets -- -Dwarnings
+
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Pinned version to avoid unrelated breakage in PRs
+      - name: Install 1.59 toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.59
+          profile: minimal
+          components: rustfmt
+          override: true
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+  tests:
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Generate lockfile for cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Build tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --all-targets --no-run
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features --all-targets --no-fail-fast
+
+  wasm:
+    name: Test on WASM
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          target: wasm32-unknown-unknown
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Generate lockfile for cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Install wasm-pack test runner
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --target wasm32-unknown-unknown --all-features --all-targets --no-run
+
+      - name: Run tests (on wasm)
+        run: wasm-pack test --node -- --all-features --all-targets
+
+  features:
+    name: Check feature powerset
+    runs-on: ubuntu-latest
+    needs: tests
+    env:
+      CARGO_INCREMENTAL: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Generate lockfile for cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: generate-lockfile
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+
+      - name: Check feature powerset
+        uses: actions-rs/cargo@v1
+        with:
+          command: hack
+          args: --feature-powerset --exclude-all-features --keep-going check --lib --tests
+
+  msrv:
+    name: Check supported versions
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+
+      - name: Check all versions
+        uses: actions-rs/cargo@v1
+        with:
+          command: hack
+          args: --version-range 1.59.. check --lib --all-features
+
+  minver:
+    name: Check minimal versions
+    runs-on: ubuntu-latest
+    needs: features
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Install cargo-hack
+        uses: taiki-e/install-action@cargo-hack
+
+      - name: Install cargo-minimal-versions
+        uses: taiki-e/install-action@cargo-minimal-versions
+
+      - name: Check minimal versions compliance
+        uses: actions-rs/cargo@v1
+        with:
+          command: hack
+          args: --feature-powerset minimal-versions check --lib
+
+
