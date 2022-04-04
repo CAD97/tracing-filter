@@ -38,11 +38,7 @@ fn snapshot_simple_filter_parser() {
                 )
             },
             (None, None) => {
-                insta::assert_snapshot!(
-                    Some("simple"),
-                    format!("(compilation failed)\n(no warnings)"),
-                    &src
-                )
+                insta::assert_snapshot!(Some("simple"), "(compilation failed)\n(no warnings)", &src)
             },
         }
     }
