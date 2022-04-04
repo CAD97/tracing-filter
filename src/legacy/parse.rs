@@ -192,7 +192,11 @@ impl DynamicDirective {
                                         FieldMatch::parse(m.as_str()).map_err(|error| {
                                             IgnoredDirective::InvalidRegex {
                                                 error,
-                                                span: recover_span(m.as_str()).into(),
+                                                span: recover_span(
+                                                    // ugly but correct
+                                                    m.as_str().split('=').nth(1).unwrap(),
+                                                )
+                                                .into(),
                                             }
                                         })
                                     })
