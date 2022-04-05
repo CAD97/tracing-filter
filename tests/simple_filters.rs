@@ -9,12 +9,12 @@ use tracing_subscriber::layer::SubscriberExt;
 fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
     let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = tracing_subscriber::fmt()
+    let sink = tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)
         .finish()
         .with(mock.clone())
         .with(filter);
-    with_default(collector, || f(&mock));
+    with_default(sink, || f(&mock));
     mock.assert_clear();
 }
 

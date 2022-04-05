@@ -51,7 +51,7 @@ fn main() {
     let filter: Filter = "use_log_crate::my_module=info".parse().unwrap();
     let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = tracing_subscriber::fmt()
+    let sink = tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)
         .finish()
         .with(mock.clone())
@@ -59,7 +59,7 @@ fn main() {
 
     // Note: we have to set the global default in order to set the `log` max
     // level, which can only be set once.
-    collector.init();
+    sink.init();
 
     my_module::test_log_enabled();
     my_module::test_records(&mock);
