@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["tracing_filter"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/beta/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"struct\" href=\"tracing_filter/simple/struct.Filter.html\" title=\"struct tracing_filter::simple::Filter\">Filter</a>","synthetic":false,"types":["tracing_filter::simple::Filter"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

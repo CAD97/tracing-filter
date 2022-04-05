@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Filter","A filter matching tracing-subscriber’s legacy `EnvFilter` format."]]});
