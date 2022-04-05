@@ -2,14 +2,14 @@
 //! tracing_subscriber is licensed under MIT
 
 use {
-    crate::mock::{self, MockLayer},
+    crate::mock::{self, MockSubscribe},
     tracing::{subscriber::with_default, Level},
-    tracing_filter::{legacy::Filter, FilterLayer},
+    tracing_filter::{legacy::Filter, FilterSubscriber},
     tracing_subscriber::prelude::*,
 };
 
-fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
-    let filter = FilterLayer::new(filter);
+fn test(filter: Filter, f: impl FnOnce(&MockSubscribe)) {
+    let filter = FilterSubscriber::new(filter);
     let mock = mock::subscribe();
     let collector = tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)

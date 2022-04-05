@@ -7,15 +7,15 @@
 mod mock;
 
 use {
-    crate::mock::MockLayer,
+    crate::mock::MockSubscribe,
     tracing::Level,
-    tracing_filter::{legacy::Filter, FilterLayer},
+    tracing_filter::{legacy::Filter, FilterSubscriber},
     tracing_subscriber::prelude::*,
 };
 
 mod my_module {
     use super::*;
-    pub(super) fn test_records(mock: &MockLayer) {
+    pub(super) fn test_records(mock: &MockSubscribe) {
         mock.expect_no_event();
         dbg!(module_path!());
         log::trace!("this should be disabled");
@@ -49,7 +49,7 @@ mod my_module {
 
 fn main() {
     let filter: Filter = "use_log_crate::my_module=info".parse().unwrap();
-    let filter = FilterLayer::new(filter);
+    let filter = FilterSubscriber::new(filter);
     let mock = mock::subscribe();
     let collector = tracing_subscriber::fmt()
         .with_max_level(Level::TRACE)

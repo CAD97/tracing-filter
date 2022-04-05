@@ -13,15 +13,15 @@ macro_rules! try_lock {
     }
 }
 
-mod layer;
 pub mod legacy;
 pub mod simple;
+mod subscriber;
 
 pub(crate) const DEFAULT_ENV: &str = "RUST_LOG";
 
-pub use self::layer::FilterLayer;
+pub use self::subscriber::FilterSubscriber;
 #[doc(no_inline)]
-pub use tracing_subscriber::layer::Filter;
+pub use tracing_subscriber::subscribe::Filter;
 
 #[cfg(feature = "smallvec")]
 type SmallVec<T> = smallvec::SmallVec<[T; 8]>;

@@ -1,15 +1,15 @@
 use {
     super::{directive::*, *},
-    crate::FilterLayer,
+    crate::FilterSubscriber,
     tracing_core::{field::FieldSet, *},
     tracing_subscriber::prelude::*,
 };
 
-struct NoSubscriber;
-impl Subscriber for NoSubscriber {
+struct NoCollector;
+impl Collect for NoCollector {
     #[inline]
-    fn register_callsite(&self, _: &'static Metadata<'static>) -> subscriber::Interest {
-        subscriber::Interest::always()
+    fn register_callsite(&self, _: &'static Metadata<'static>) -> collect::Interest {
+        collect::Interest::always()
     }
     fn new_span(&self, _: &span::Attributes<'_>) -> span::Id {
         span::Id::from_u64(0xDEAD)
@@ -25,7 +25,7 @@ impl Subscriber for NoSubscriber {
     fn enter(&self, _span: &span::Id) {}
     fn exit(&self, _span: &span::Id) {}
     fn current_span(&self) -> span::Current {
-        span::Current::none()
+        span::Current::unknown()
     }
 }
 
@@ -39,7 +39,7 @@ impl Callsite for Cs {
 
 #[test]
 fn callsite_enabled_no_span_directive() {
-    let filter = FilterLayer::new(Filter::new("app=debug")).with_subscriber(NoSubscriber);
+    let filter = FilterSubscriber::new(Filter::new("app=debug")).with_collector(NoCollector);
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -57,7 +57,7 @@ fn callsite_enabled_no_span_directive() {
 
 #[test]
 fn callsite_off() {
-    let filter = FilterLayer::new(Filter::new("app=off")).with_subscriber(NoSubscriber);
+    let filter = FilterSubscriber::new(Filter::new("app=off")).with_collector(NoCollector);
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -75,7 +75,8 @@ fn callsite_off() {
 
 #[test]
 fn callsite_enabled_includes_span_directive() {
-    let filter = FilterLayer::new(Filter::new("app[mySpan]=debug")).with_subscriber(NoSubscriber);
+    let filter =
+        FilterSubscriber::new(Filter::new("app[mySpan]=debug")).with_collector(NoCollector);
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -93,8 +94,8 @@ fn callsite_enabled_includes_span_directive() {
 
 #[test]
 fn callsite_enabled_includes_span_directive_field() {
-    let filter = FilterLayer::new(Filter::new("app[mySpan{field=\"value\"}]=debug"))
-        .with_subscriber(NoSubscriber);
+    let filter = FilterSubscriber::new(Filter::new("app[mySpan{field=\"value\"}]=debug"))
+        .with_collector(NoCollector);
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -113,12 +114,12 @@ fn callsite_enabled_includes_span_directive_field() {
 #[test]
 #[ignore = "filter parser doesn't support multiple fields"]
 fn callsite_enabled_includes_span_directive_multiple_fields() {
-    let filter = FilterLayer::new(
+    let filter = FilterSubscriber::new(
         "app[mySpan{field=\"value\",field2=2}]=debug"
             .parse::<Filter>()
             .expect("filter should parse without warnings"),
     )
-    .with_subscriber(NoSubscriber);
+    .with_collector(NoCollector);
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",

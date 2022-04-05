@@ -5,16 +5,16 @@ use std::{
     },
     thread,
 };
-use tracing::Subscriber;
-use tracing_subscriber::Layer;
+use tracing::Collect;
+use tracing_subscriber::Subscribe;
 
-pub fn subscribe() -> MockLayer {
-    MockLayer {
+pub fn subscribe() -> MockSubscribe {
+    MockSubscribe {
         expect_event: Arc::default(),
         expect_span: Arc::default(),
         name: thread::current()
             .name()
-            .unwrap_or("MockLayer")
+            .unwrap_or("MockSubscribe")
             .to_string()
             .into_boxed_str()
             .into(),
@@ -22,14 +22,18 @@ pub fn subscribe() -> MockLayer {
 }
 
 #[derive(Debug, Clone)]
-pub struct MockLayer {
+pub struct MockSubscribe {
     expect_event: Arc<AtomicU8>,
     expect_span: Arc<AtomicU8>,
     name: Arc<str>,
 }
 
-impl<S: Subscriber> Layer<S> for MockLayer {
-    fn on_event(&self, event: &tracing::Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
+impl<C: Collect> Subscribe<C> for MockSubscribe {
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        ctx: tracing_subscriber::subscribe::Context<'_, C>,
+    ) {
         let _ = (event, ctx);
         if self.expect_event.fetch_sub(1, Ordering::SeqCst) == 0 {
             panic!("[{}] received unexpected event", self.name);
@@ -39,7 +43,7 @@ impl<S: Subscriber> Layer<S> for MockLayer {
     fn on_enter(
         &self,
         id: &tracing_core::span::Id,
-        ctx: tracing_subscriber::layer::Context<'_, S>,
+        ctx: tracing_subscriber::subscribe::Context<'_, C>,
     ) {
         let _ = (id, ctx);
         if self.expect_span.fetch_sub(1, Ordering::SeqCst) == 0 {
@@ -48,7 +52,7 @@ impl<S: Subscriber> Layer<S> for MockLayer {
     }
 }
 
-impl MockLayer {
+impl MockSubscribe {
     pub fn expect_event(&self) {
         if self.expect_event.fetch_add(1, Ordering::SeqCst) != 0 {
             panic!("[{}] did not receive expected event", self.name);
