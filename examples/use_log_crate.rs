@@ -8,8 +8,8 @@ mod mock;
 
 use {
     crate::mock::MockLayer,
+    tracing::Level,
     tracing_filter::{legacy::Filter, FilterLayer},
-    tracing_mock::subscriber,
     tracing_subscriber::prelude::*,
 };
 
@@ -51,7 +51,11 @@ fn main() {
     let filter: Filter = "use_log_crate::my_module=info".parse().unwrap();
     let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = subscriber::mock().run().with(mock.clone()).with(filter);
+    let collector = tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .finish()
+        .with(mock.clone())
+        .with(filter);
 
     // Note: we have to set the global default in order to set the `log` max
     // level, which can only be set once.

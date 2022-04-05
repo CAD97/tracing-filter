@@ -3,16 +3,19 @@
 
 use {
     crate::mock::{self, MockLayer},
-    tracing::subscriber::with_default,
+    tracing::{subscriber::with_default, Level},
     tracing_filter::{legacy::Filter, FilterLayer},
-    tracing_mock::subscriber,
     tracing_subscriber::prelude::*,
 };
 
 fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
     let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = subscriber::mock().run().with(mock.clone()).with(filter);
+    let collector = tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .finish()
+        .with(mock.clone())
+        .with(filter);
     with_default(collector, || f(&mock));
     mock.assert_clear();
 }

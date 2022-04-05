@@ -2,15 +2,18 @@
 //! env_logger is licensed under MIT OR Apache-2.0
 
 use crate::mock::{self, MockLayer};
-use tracing::{level_filters::LevelFilter, subscriber::with_default};
+use tracing::{level_filters::LevelFilter, subscriber::with_default, Level};
 use tracing_filter::{simple::Filter, FilterLayer};
-use tracing_mock::subscriber;
 use tracing_subscriber::layer::SubscriberExt;
 
 fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
     let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = subscriber::mock().run().with(mock.clone()).with(filter);
+    let collector = tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .finish()
+        .with(mock.clone())
+        .with(filter);
     with_default(collector, || f(&mock));
     mock.assert_clear();
 }

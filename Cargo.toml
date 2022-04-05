@@ -49,15 +49,4 @@ name = "lib"
 [dev-dependencies.tracing-subscriber]
 version = "0.3.10"
 default-features = false
-features = ["registry", "std", "tracing-log"]
-
-[dev-dependencies.tracing-mock]
-version = "0.1.0"
-git = "https://github.com/tokio-rs/tracing"
-branch = "v0.1.x"
-default-features = false
-
-# patch tracing-mock to use published deps rather than path
-[patch."https://github.com/tokio-rs/tracing"]
-tracing = "0.1"
-tracing-core = "0.1"
+features = ["fmt", "tracing-log"]
