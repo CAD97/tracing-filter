@@ -1,6 +1,6 @@
 use {
     crate::Filter,
-    tracing_core::{Metadata, Subscriber},
+    tracing_core::{span, Event, Interest, LevelFilter, Metadata, Subscriber},
     tracing_subscriber::layer::{Context, Layer},
 };
 
@@ -23,7 +23,7 @@ impl<F> FilterLayer<F> {
 }
 
 impl<S: Subscriber, F: 'static + Filter<S>> Layer<S> for FilterLayer<F> {
-    fn register_callsite(&self, metadata: &'static Metadata<'static>) -> tracing_core::Interest {
+    fn register_callsite(&self, metadata: &'static Metadata<'static>) -> Interest {
         self.filter.callsite_enabled(metadata)
     }
 
@@ -31,41 +31,31 @@ impl<S: Subscriber, F: 'static + Filter<S>> Layer<S> for FilterLayer<F> {
         self.filter.enabled(metadata, &ctx)
     }
 
-    fn on_new_span(
-        &self,
-        attrs: &tracing_core::span::Attributes<'_>,
-        id: &tracing_core::span::Id,
-        ctx: Context<'_, S>,
-    ) {
+    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: Context<'_, S>) {
         self.filter.on_new_span(attrs, id, ctx);
     }
 
-    fn max_level_hint(&self) -> Option<tracing_core::LevelFilter> {
+    fn max_level_hint(&self) -> Option<LevelFilter> {
         self.filter.max_level_hint()
     }
 
-    fn on_record(
-        &self,
-        id: &tracing_core::span::Id,
-        values: &tracing_core::span::Record<'_>,
-        ctx: Context<'_, S>,
-    ) {
+    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, ctx: Context<'_, S>) {
         self.filter.on_record(id, values, ctx)
     }
 
-    fn on_event(&self, _event: &tracing::Event<'_>, _ctx: Context<'_, S>) {
+    fn on_event(&self, _event: &Event<'_>, _ctx: Context<'_, S>) {
         // FUTURE: allow event filtering; tokio-rs/tracing#2008
     }
 
-    fn on_enter(&self, id: &tracing_core::span::Id, ctx: Context<'_, S>) {
+    fn on_enter(&self, id: &span::Id, ctx: Context<'_, S>) {
         self.filter.on_enter(id, ctx)
     }
 
-    fn on_exit(&self, id: &tracing_core::span::Id, ctx: Context<'_, S>) {
+    fn on_exit(&self, id: &span::Id, ctx: Context<'_, S>) {
         self.filter.on_exit(id, ctx)
     }
 
-    fn on_close(&self, id: tracing_core::span::Id, ctx: Context<'_, S>) {
+    fn on_close(&self, id: span::Id, ctx: Context<'_, S>) {
         self.filter.on_close(id, ctx)
     }
 }

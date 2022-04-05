@@ -6,7 +6,8 @@ use {
     miette::ErrReport,
     sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
-    tracing_core::{Interest, LevelFilter},
+    tracing_core::{Interest, LevelFilter, Metadata},
+    tracing_subscriber::layer::Context,
 };
 
 mod parse;
@@ -160,7 +161,7 @@ impl Filter {
         self
     }
 
-    fn is_enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
+    fn is_enabled(&self, metadata: &Metadata<'_>) -> bool {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0
 
@@ -183,7 +184,7 @@ impl Filter {
 }
 
 impl<S> crate::Filter<S> for Filter {
-    fn callsite_enabled(&self, metadata: &tracing::Metadata<'_>) -> tracing_core::Interest {
+    fn callsite_enabled(&self, metadata: &Metadata<'_>) -> Interest {
         if self.is_enabled(metadata) {
             Interest::always()
         } else {
@@ -191,11 +192,7 @@ impl<S> crate::Filter<S> for Filter {
         }
     }
 
-    fn enabled(
-        &self,
-        metadata: &tracing::Metadata<'_>,
-        _ctx: &tracing_subscriber::layer::Context<'_, S>,
-    ) -> bool {
+    fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, S>) -> bool {
         self.is_enabled(metadata)
     }
 }

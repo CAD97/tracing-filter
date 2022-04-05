@@ -3,7 +3,8 @@
 
 use {
     crate::mock::{self, MockLayer},
-    tracing::{subscriber::with_default, Level},
+    tracing::subscriber::with_default,
+    tracing_core::Level,
     tracing_filter::{legacy::Filter, FilterLayer},
     tracing_subscriber::prelude::*,
 };

@@ -8,8 +8,7 @@ use {
         fmt,
         sync::atomic::{AtomicBool, Ordering::*},
     },
-    tracing::{field::Visit, Metadata},
-    tracing_core::{span, Field, LevelFilter},
+    tracing_core::{field::Visit, span, Field, LevelFilter, Metadata},
 };
 
 #[derive(Debug)]

@@ -8,7 +8,7 @@ mod mock;
 
 use {
     crate::mock::MockLayer,
-    tracing::Level,
+    tracing_core::Level,
     tracing_filter::{legacy::Filter, FilterLayer},
     tracing_subscriber::prelude::*,
 };
