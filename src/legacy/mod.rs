@@ -186,7 +186,7 @@ impl fmt::Display for Filter {
             if wrote_any {
                 write!(f, ",")?;
             }
-            write!(f, "{directive}")?;
+            write!(f, "{}", directive)?;
             wrote_any = true;
         }
 
@@ -194,7 +194,7 @@ impl fmt::Display for Filter {
             if wrote_any {
                 write!(f, ",")?;
             }
-            write!(f, "{directive}")?;
+            write!(f, "{}", directive)?;
             wrote_any = true;
         }
 
