@@ -149,7 +149,18 @@ fn roundtrip() {
 fn size_of_filters() {
     fn assert_sz(s: &str) {
         let filter = s.parse::<Filter>().expect("filter should parse");
-        assert_eq!(std::mem::size_of_val(&filter), 736);
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(
+            std::mem::size_of_val(&filter),
+            92 * std::mem::size_of::<usize>()
+        );
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(
+            std::mem::size_of_val(&filter),
+            64 * std::mem::size_of::<usize>()
+        );
+        #[cfg(target_pointer_width = "16")]
+        panic!("adventurous, aren't you; I'm surprised you even got this far")
     }
 
     assert_sz("info");

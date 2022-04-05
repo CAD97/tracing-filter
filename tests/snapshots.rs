@@ -1,3 +1,5 @@
+#![cfg(not(target_family = "wasm"))]
+
 use {
     miette::Diagnostic,
     std::{fmt, fs, path::Path},
