@@ -4,8 +4,7 @@ use {
     compact_str::CompactStr,
     sorted_vec::SortedSet,
     std::{cmp::Ordering, collections::HashMap, fmt},
-    tracing::Metadata,
-    tracing_core::LevelFilter,
+    tracing_core::{LevelFilter, Metadata},
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -182,7 +181,7 @@ impl DynamicDirective {
 }
 
 impl Match for StaticDirective {
-    fn cares_about(&self, metadata: &tracing::Metadata<'_>) -> bool {
+    fn cares_about(&self, metadata: &Metadata<'_>) -> bool {
         // Does this directive have a target filter, and does it match the
         // metadata's target?
         if let Some(ref target) = self.target {

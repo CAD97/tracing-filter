@@ -1,12 +1,14 @@
-use std::{
-    sync::{
-        atomic::{AtomicU8, Ordering},
-        Arc,
+use {
+    std::{
+        sync::{
+            atomic::{AtomicU8, Ordering},
+            Arc,
+        },
+        thread,
     },
-    thread,
+    tracing_core::{span, Event, Subscriber},
+    tracing_subscriber::{layer::Context, Layer},
 };
-use tracing::Subscriber;
-use tracing_subscriber::Layer;
 
 pub fn subscribe() -> MockLayer {
     MockLayer {
@@ -29,18 +31,14 @@ pub struct MockLayer {
 }
 
 impl<S: Subscriber> Layer<S> for MockLayer {
-    fn on_event(&self, event: &tracing::Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
+    fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
         let _ = (event, ctx);
         if self.expect_event.fetch_sub(1, Ordering::SeqCst) == 0 {
             panic!("[{}] received unexpected event", self.name);
         }
     }
 
-    fn on_enter(
-        &self,
-        id: &tracing_core::span::Id,
-        ctx: tracing_subscriber::layer::Context<'_, S>,
-    ) {
+    fn on_enter(&self, id: &span::Id, ctx: Context<'_, S>) {
         let _ = (id, ctx);
         if self.expect_span.fetch_sub(1, Ordering::SeqCst) == 0 {
             panic!("[{}] received unexpected span", self.name);

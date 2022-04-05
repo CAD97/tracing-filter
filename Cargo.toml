@@ -23,6 +23,8 @@ sorted-vec = "0.7.0"
 thiserror = "1.0.30"
 thread_local = "1.1.4"
 
+# The only place tracing is used not in tests is for STATIC_MAX_LEVEL
+# Everything else just uses tracing-core; is this worth making optional?
 [dependencies.tracing]
 version = "0.1.32"
 default-features = false

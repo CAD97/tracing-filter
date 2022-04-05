@@ -8,8 +8,7 @@ use {
     miette::ErrReport,
     std::{cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt, sync::RwLock},
     thread_local::ThreadLocal,
-    tracing::{Metadata, Subscriber},
-    tracing_core::{callsite, span, Interest, LevelFilter},
+    tracing_core::{callsite, span, Interest, LevelFilter, Metadata, Subscriber},
     tracing_subscriber::layer::Context,
 };
 

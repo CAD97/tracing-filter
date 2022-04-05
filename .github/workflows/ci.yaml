@@ -49,10 +49,10 @@ jobs:
         uses: actions/checkout@v3
 
       # Pinned version to avoid unrelated breakage in PRs
-      - name: Install 1.59 toolchain
+      - name: Install nighly (2022-04-02) toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.59
+          toolchain: nightly-2022-04-02
           profile: minimal
           components: rustfmt
           override: true
