@@ -42,11 +42,11 @@
     <span class="macro">println!</span>();
 
     <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">filter</span>) <span class="op">=</span> <span class="ident">filter</span> {
-        <span class="macro">println!</span>(<span class="string">&quot;Filter normalizes as:\n{filter}\n&quot;</span>);
+        <span class="macro">println!</span>(<span class="string">&quot;Filter normalizes as:\n{}\n&quot;</span>, <span class="ident">filter</span>);
     }
 
     <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">report</span>) <span class="op">=</span> <span class="ident">report</span> {
-        <span class="macro">println!</span>(<span class="string">&quot;Error: {report:?}&quot;</span>);
+        <span class="macro">println!</span>(<span class="string">&quot;Error: {:?}&quot;</span>, <span class="ident">report</span>);
     }
 }
 </code></pre></div>

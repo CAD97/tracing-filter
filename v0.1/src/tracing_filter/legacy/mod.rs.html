@@ -394,7 +394,7 @@
             <span class="kw">if</span> <span class="ident">wrote_any</span> {
                 <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;,&quot;</span>)<span class="question-mark">?</span>;
             }
-            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{directive}&quot;</span>)<span class="question-mark">?</span>;
+            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{}&quot;</span>, <span class="ident">directive</span>)<span class="question-mark">?</span>;
             <span class="ident">wrote_any</span> <span class="op">=</span> <span class="bool-val">true</span>;
         }
 
@@ -402,7 +402,7 @@
             <span class="kw">if</span> <span class="ident">wrote_any</span> {
                 <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;,&quot;</span>)<span class="question-mark">?</span>;
             }
-            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{directive}&quot;</span>)<span class="question-mark">?</span>;
+            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{}&quot;</span>, <span class="ident">directive</span>)<span class="question-mark">?</span>;
             <span class="ident">wrote_any</span> <span class="op">=</span> <span class="bool-val">true</span>;
         }
 

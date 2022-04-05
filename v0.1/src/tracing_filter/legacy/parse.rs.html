@@ -392,6 +392,10 @@
 <span id="387">387</span>
 <span id="388">388</span>
 <span id="389">389</span>
+<span id="390">390</span>
+<span id="391">391</span>
+<span id="392">392</span>
+<span id="393">393</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="kw">super</span>::{
         <span class="ident">directive</span>::{<span class="ident">DynamicDirective</span>, <span class="ident">StaticDirective</span>},
@@ -475,7 +479,7 @@
                     <span class="ident">target</span>: <span class="ident">directive</span>
                         .<span class="ident">target</span>
                         .<span class="ident">as_deref</span>()
-                        .<span class="ident">map</span>(<span class="op">|</span><span class="ident">t</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;the `{t}` target&quot;</span>))
+                        .<span class="ident">map</span>(<span class="op">|</span><span class="ident">t</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;the `{}` target&quot;</span>, <span class="ident">t</span>))
                         .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;all targets&quot;</span>.<span class="ident">into</span>()),
                 });
             }
@@ -773,7 +777,11 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Error</span>, <span class="ident">Diagnostic</span>)]</span>
 <span class="attribute">#[<span class="ident">diagnostic</span>(
     <span class="ident">severity</span>(<span class="ident">advice</span>),
-    <span class="ident">help</span>(<span class="string">&quot;to enable {}logging, remove the `{}` feature&quot;</span>, .<span class="ident">earlier_level</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">l</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;{l} &quot;</span>)).<span class="ident">unwrap_or_default</span>(), .<span class="ident">feature</span>)
+    <span class="ident">help</span>(
+        <span class="string">&quot;to enable {}logging, remove the `{}` feature&quot;</span>,
+        .<span class="ident">earlier_level</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">l</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;{} &quot;</span>, <span class="ident">l</span>)).<span class="ident">unwrap_or_default</span>(),
+        .<span class="ident">feature</span>
+    ),
 )]</span>
 <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;the static max level is `{}`&quot;</span>, .<span class="ident">static_level</span>)]</span>
 <span class="kw">struct</span> <span class="ident">StaticMaxAdvice</span> {
