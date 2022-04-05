@@ -8,9 +8,9 @@ use {
     miette::ErrReport,
     std::{cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt, sync::RwLock},
     thread_local::ThreadLocal,
-    tracing::{Collect, Metadata},
+    tracing::{Metadata, Subscriber},
     tracing_core::{callsite, span, Interest, LevelFilter},
-    tracing_subscriber::subscribe::Context,
+    tracing_subscriber::layer::Context,
 };
 
 mod directive;
@@ -74,8 +74,8 @@ impl Filter {
     }
 }
 
-impl<C: Collect> crate::Filter<C> for Filter {
-    fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, C>) -> bool {
+impl<S: Subscriber> crate::Filter<S> for Filter {
+    fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, S>) -> bool {
         let level = metadata.level();
 
         // Is it possible for a dynamic filter directive to enable this event?
@@ -139,7 +139,7 @@ impl<C: Collect> crate::Filter<C> for Filter {
         std::cmp::max(self.statics.level.into(), self.dynamics.level.into())
     }
 
-    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, _: Context<'_, C>) {
+    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, _: Context<'_, S>) {
         let by_cs = try_lock!(self.by_cs.read());
         if let Some(cs) = by_cs.get(&attrs.metadata().callsite()) {
             let span = cs.to_span_matcher(attrs);
@@ -147,13 +147,13 @@ impl<C: Collect> crate::Filter<C> for Filter {
         }
     }
 
-    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, C>) {
+    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, S>) {
         if let Some(span) = try_lock!(self.by_id.read()).get(id) {
             span.record_update(values);
         }
     }
 
-    fn on_enter(&self, id: &span::Id, _: Context<'_, C>) {
+    fn on_enter(&self, id: &span::Id, _: Context<'_, S>) {
         // We _could_ push IDs to the stack instead, and use that to allow
         // changing the filter while a span is already entered. But that seems
         // much less efficient...
@@ -162,13 +162,13 @@ impl<C: Collect> crate::Filter<C> for Filter {
         }
     }
 
-    fn on_exit(&self, id: &span::Id, _ctx: Context<'_, C>) {
+    fn on_exit(&self, id: &span::Id, _ctx: Context<'_, S>) {
         if self.cares_about_span(id) {
             self.scope.get_or_default().borrow_mut().pop();
         }
     }
 
-    fn on_close(&self, id: span::Id, _ctx: Context<'_, C>) {
+    fn on_close(&self, id: span::Id, _ctx: Context<'_, S>) {
         // If we don't need a write lock, avoid taking one.
         if !self.cares_about_span(&id) {
             return;

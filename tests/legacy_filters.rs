@@ -2,17 +2,17 @@
 //! tracing_subscriber is licensed under MIT
 
 use {
-    crate::mock::{self, MockSubscribe},
-    tracing::collect::with_default,
-    tracing_filter::{legacy::Filter, FilterSubscriber},
-    tracing_mock::collector,
+    crate::mock::{self, MockLayer},
+    tracing::subscriber::with_default,
+    tracing_filter::{legacy::Filter, FilterLayer},
+    tracing_mock::subscriber,
     tracing_subscriber::prelude::*,
 };
 
-fn test(filter: Filter, f: impl FnOnce(&MockSubscribe)) {
-    let filter = FilterSubscriber::new(filter);
+fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
+    let filter = FilterLayer::new(filter);
     let mock = mock::subscribe();
-    let collector = collector::mock().run().with(mock.clone()).with(filter);
+    let collector = subscriber::mock().run().with(mock.clone()).with(filter);
     with_default(collector, || f(&mock));
     mock.assert_clear();
 }

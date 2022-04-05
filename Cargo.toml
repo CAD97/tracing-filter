@@ -3,7 +3,7 @@ resolver = "2"
 
 [package]
 name = "tracing-filter"
-version = "0.0.0-dev.1"
+version = "0.1.0-dev.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 rust-version = "1.59"
@@ -24,20 +24,17 @@ thiserror = "1.0.30"
 thread_local = "1.1.4"
 
 [dependencies.tracing]
-version = "0.2.0"
-git = "https://github.com/tokio-rs/tracing"
+version = "0.1.32"
 default-features = false
 features = ["std"]
 
 [dependencies.tracing-core]
-version = "0.2.0"
-git = "https://github.com/tokio-rs/tracing"
+version = "0.1.24"
 default-features = false
 features = ["std"]
 
 [dependencies.tracing-subscriber]
-version = "0.3.0"
-git = "https://github.com/tokio-rs/tracing"
+version = "0.3.10"
 default-features = false
 features = ["registry", "std"]
 
@@ -46,16 +43,21 @@ insta = { version = "1.14.0", features = ["glob"] }
 log = "0.4.16"
 miette = { version = "4.3.0", features = ["fancy"] }
 
+[[test]]
+name = "lib"
+
 [dev-dependencies.tracing-subscriber]
-version = "0.3.0"
-git = "https://github.com/tokio-rs/tracing"
+version = "0.3.10"
 default-features = false
 features = ["registry", "std", "tracing-log"]
 
 [dev-dependencies.tracing-mock]
-version = "0.2.0"
+version = "0.1.0"
 git = "https://github.com/tokio-rs/tracing"
+branch = "v0.1.x"
 default-features = false
 
-[[test]]
-name = "lib"
+# patch tracing-mock to use published deps rather than path
+[patch."https://github.com/tokio-rs/tracing"]
+tracing = "0.1"
+tracing-core = "0.1"
