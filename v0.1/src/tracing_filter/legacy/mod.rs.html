@@ -206,7 +206,6 @@
 <span id="201">201</span>
 <span id="202">202</span>
 <span id="203">203</span>
-<span id="204">204</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Support for legacy filters, which match tracing-subscriber&#39;s legacy</span>
 <span class="doccomment">//! `EnvFilter` format.</span>
 <span class="doccomment">//!</span>
@@ -217,8 +216,7 @@
     <span class="ident">miette::ErrReport</span>,
     <span class="ident">std</span>::{<span class="ident">cell::RefCell</span>, <span class="ident">collections::HashMap</span>, <span class="ident">env</span>, <span class="ident">ffi::OsStr</span>, <span class="ident">fmt</span>, <span class="ident">sync::RwLock</span>},
     <span class="ident">thread_local::ThreadLocal</span>,
-    <span class="ident">tracing</span>::{<span class="ident">Metadata</span>, <span class="ident">Subscriber</span>},
-    <span class="ident">tracing_core</span>::{<span class="ident">callsite</span>, <span class="ident">span</span>, <span class="ident">Interest</span>, <span class="ident">LevelFilter</span>},
+    <span class="ident">tracing_core</span>::{<span class="ident">callsite</span>, <span class="ident">span</span>, <span class="ident">Interest</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>, <span class="ident">Subscriber</span>},
     <span class="ident">tracing_subscriber::layer::Context</span>,
 };
 

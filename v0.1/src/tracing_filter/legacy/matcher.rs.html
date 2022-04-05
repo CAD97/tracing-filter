@@ -346,7 +346,6 @@
 <span id="341">341</span>
 <span id="342">342</span>
 <span id="343">343</span>
-<span id="344">344</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="ident"><span class="kw">crate</span>::SmallVec</span>,
     <span class="ident">compact_str::CompactStr</span>,
@@ -357,8 +356,7 @@
         <span class="ident">fmt</span>,
         <span class="ident">sync::atomic</span>::{<span class="ident">AtomicBool</span>, <span class="ident">Ordering</span>::<span class="kw-2">*</span>},
     },
-    <span class="ident">tracing</span>::{<span class="ident">field::Visit</span>, <span class="ident">Metadata</span>},
-    <span class="ident">tracing_core</span>::{<span class="ident">span</span>, <span class="ident">Field</span>, <span class="ident">LevelFilter</span>},
+    <span class="ident">tracing_core</span>::{<span class="ident">field::Visit</span>, <span class="ident">span</span>, <span class="ident">Field</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>},
 };
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
