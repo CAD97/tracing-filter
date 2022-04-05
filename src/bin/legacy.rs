@@ -11,8 +11,8 @@ fn main() {
 fn show_directive(spec: String) {
     let (filter, report) = Filter::parse(spec);
 
-    println!("\nFilter normalizes as:\n{filter}\n");
+    println!("\nFilter normalizes as:\n{}\n", filter);
     if let Some(report) = report {
-        println!("Error: {report:?}");
+        println!("Error: {:?}", report);
     }
 }

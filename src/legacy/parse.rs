@@ -81,7 +81,7 @@ impl Filter {
                     target: directive
                         .target
                         .as_deref()
-                        .map(|t| format!("the `{t}` target"))
+                        .map(|t| format!("the `{}` target", t))
                         .unwrap_or_else(|| "all targets".into()),
                 });
             }
@@ -379,7 +379,11 @@ struct DisabledDirective {
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(
     severity(advice),
-    help("to enable {}logging, remove the `{}` feature", .earlier_level.map(|l| format!("{l} ")).unwrap_or_default(), .feature)
+    help(
+        "to enable {}logging, remove the `{}` feature",
+        .earlier_level.map(|l| format!("{} ", l)).unwrap_or_default(),
+        .feature
+    ),
 )]
 #[error("the static max level is `{}`", .static_level)]
 struct StaticMaxAdvice {

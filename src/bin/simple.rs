@@ -14,10 +14,10 @@ fn show_directive(spec: String) {
     println!();
 
     if let Some(filter) = filter {
-        println!("Filter normalizes as:\n{filter}\n");
+        println!("Filter normalizes as:\n{}\n", filter);
     }
 
     if let Some(report) = report {
-        println!("Error: {report:?}");
+        println!("Error: {:?}", report);
     }
 }
