@@ -5,7 +5,7 @@ on:
       - main
 
 permissions:
-  pages: write
+  contents: write
 
 env:
   CARGO_INCREMENTAL: 0
@@ -14,7 +14,8 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  cargo-doc:
+  build:
+    name: Build docs
     runs-on: ubuntu-latest
 
     steps:
@@ -34,9 +35,9 @@ jobs:
           command: doc
           args: --no-deps
 
-      - name: Deploy docs
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ github.token }}
-          publish_dir: ./target/doc
-          force_orphan: true
+          branch: gh-pages
+          folder: target/doc
+          single-commit: true
