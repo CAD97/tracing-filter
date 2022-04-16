@@ -12,9 +12,6 @@ description = "experimental next-generation filtering support for tracing"
 
 autotests = false
 
-[features]
-fancy-errors = ["miette/fancy"]
-
 [dependencies]
 compact_str = "0.3.2"
 matchers = "0.1.0"
@@ -47,7 +44,6 @@ features = ["registry", "std"]
 insta = { version = "1.14.0", features = ["glob"] }
 log = "0.4.16"
 miette = { version = "4.3.0", features = ["fancy"] }
-strip-ansi-escapes = "0.1.1"
 
 [[test]]
 name = "lib"
