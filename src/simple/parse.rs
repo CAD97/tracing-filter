@@ -1,6 +1,7 @@
 use {
     super::{Directive, Filter},
-    miette::{Diagnostic, ErrReport, SourceSpan},
+    crate::Diagnostics,
+    miette::{Diagnostic, SourceSpan},
     sorted_vec::ReverseSortedVec,
     std::str::FromStr,
     thiserror::Error,
@@ -12,13 +13,7 @@ impl Filter {
     ///
     /// Filter compilation can produce warnings even when it succeeds,
     /// thus the nonstandard return type to provide an [`ErrReport`] on success.
-    pub fn parse(spec: impl AsRef<str> + Into<String>) -> (Option<Filter>, Option<ErrReport>) {
-        let (filter, errs) = Self::parse_inner(spec.as_ref());
-        let errs = errs.map(|errs| errs.with_source_code(spec.into()));
-        (filter, errs)
-    }
-
-    fn parse_inner(spec: &str) -> (Option<Filter>, Option<ErrReport>) {
+    pub fn parse(spec: &str) -> (Option<Filter>, Option<Diagnostics<'_>>) {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0
 
@@ -39,7 +34,15 @@ impl Filter {
                 slash: (after.start - 1..after.start).into(),
                 regex: (regex.start..spec.len()).into(),
             };
-            return (None, Some(error.into()));
+            return (
+                None,
+                Some(Diagnostics {
+                    error: Some(Box::new(error)),
+                    ignored: Vec::new(),
+                    disabled: None,
+                    source: spec.into(),
+                }),
+            );
         }
 
         let mut warnings = Vec::new();
@@ -103,7 +106,15 @@ impl Filter {
         let report = if warnings.is_empty() {
             None
         } else {
-            Some(Warnings { warnings }.into())
+            Some(Diagnostics {
+                error: None,
+                ignored: warnings
+                    .into_iter()
+                    .map(|x| Box::new(x) as Box<dyn Diagnostic + Send + Sync + 'static>)
+                    .collect(),
+                disabled: None,
+                source: spec.into(),
+            })
         };
 
         (filter, report)
@@ -111,31 +122,23 @@ impl Filter {
 }
 
 impl FromStr for Filter {
-    type Err = ErrReport;
+    type Err = Diagnostics<'static>;
 
     /// Parse a filter from its string representation, discarding warnings.
-    fn from_str(spec: &str) -> miette::Result<Self> {
+    fn from_str(spec: &str) -> Result<Self, Diagnostics<'static>> {
         let (filter, errs) = Self::parse(spec);
-        filter.ok_or_else(|| errs.expect("filter compilation failed without any diagnostics"))
+        filter.ok_or_else(|| {
+            errs.expect("filter compilation failed without any diagnostics")
+                .into_owned()
+        })
     }
-}
-
-#[derive(Debug, Error, Diagnostic)]
-#[error("{} directives were ignored as invalid", .warnings.len())]
-#[diagnostic(severity(warning))]
-struct Warnings {
-    #[related]
-    warnings: Vec<Warning>,
 }
 
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
 enum Warning {
     #[error("invalid level filter specified")]
-    #[diagnostic(
-        code(tracing_filter::simple::InvalidLevel),
-        help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE")
-    )]
+    #[diagnostic(help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE"))]
     InvalidLevel {
         #[label]
         span: SourceSpan,
@@ -156,10 +159,7 @@ enum Warning {
 #[diagnostic(severity(error))]
 enum Error {
     #[error("logging spec has too many `/`s")]
-    #[diagnostic(
-        code(tracing_filter::simple::MultipleSlash),
-        help("regex filters may not contain `/`")
-    )]
+    #[diagnostic(help("regex filters may not contain `/`"))]
     MultipleSlash {
         #[label("this `/` is not allowed ...")]
         slash: SourceSpan,

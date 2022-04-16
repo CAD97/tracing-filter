@@ -4,8 +4,8 @@ use {
         matcher::{FieldMatch, PatternMatch, ValueMatch},
         Filter,
     },
-    crate::SmallVec,
-    miette::{Diagnostic, ErrReport, SourceSpan},
+    crate::{Diagnostics, SmallVec},
+    miette::{Diagnostic, SourceSpan},
     once_cell::sync::Lazy,
     regex::Regex,
     std::{ops::Range, str::FromStr},
@@ -15,13 +15,13 @@ use {
 };
 
 impl FromStr for Filter {
-    type Err = ErrReport;
+    type Err = Diagnostics<'static>;
 
     /// Parse a filter from its string representation, discarding warnings.
-    fn from_str(s: &str) -> miette::Result<Self> {
+    fn from_str(s: &str) -> Result<Self, Diagnostics<'static>> {
         let (filter, errs) = Self::parse(s);
         if let Some(errs) = errs {
-            Err(errs)
+            Err(errs.into_owned())
         } else {
             Ok(filter)
         }
@@ -33,13 +33,7 @@ impl Filter {
     ///
     /// Filter compilation can produce warnings even when it succeeds,
     /// thus the nonstandard return type to provide an [`ErrReport`] on success.
-    pub fn parse(spec: impl AsRef<str> + Into<String>) -> (Filter, Option<ErrReport>) {
-        let (filter, errs) = Self::parse_inner(spec.as_ref());
-        let errs = errs.map(|errs| errs.with_source_code(spec.into()));
-        (filter, errs)
-    }
-
-    fn parse_inner(spec: &str) -> (Filter, Option<ErrReport>) {
+    pub fn parse(spec: &str) -> (Filter, Option<Diagnostics<'_>>) {
         let recover_span = |substr: &str| {
             let offset = substr.as_ptr() as usize - spec.as_ptr() as usize;
             offset..offset + substr.len()
@@ -55,13 +49,23 @@ impl Filter {
             }
         }
 
-        let ignored = Some(ignored)
-            .filter(|v| !v.is_empty())
-            .map(IgnoredDirectives);
+        let ignored: Vec<_> = ignored
+            .into_iter()
+            .map(|x| Box::new(x) as Box<dyn Diagnostic + Send + Sync + 'static>)
+            .collect();
         let (filter, disabled) = Self::from_directives(directives);
-        match (ignored, disabled) {
-            (None, None) => (filter, None),
-            (ignored, disabled) => (filter, Some(Warnings { ignored, disabled }.into())),
+        match (&*ignored, disabled) {
+            (&[], None) => (filter, None),
+            (_, disabled) => (
+                filter,
+                Some(Diagnostics {
+                    error: None,
+                    ignored,
+                    disabled: disabled
+                        .map(|x| Box::new(x) as Box<dyn Diagnostic + Send + Sync + 'static>),
+                    source: spec.into(),
+                }),
+            ),
         }
     }
 
@@ -125,11 +129,20 @@ impl Filter {
 }
 
 impl FromStr for DynamicDirective {
-    type Err = IgnoredDirective;
+    type Err = Diagnostics<'static>;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse(s, |substr: &str| {
             let offset = substr.as_ptr() as usize - s.as_ptr() as usize;
             offset..offset + substr.len()
+        })
+        .map_err(|ignored| {
+            Diagnostics {
+                error: None,
+                ignored: vec![Box::new(ignored)],
+                disabled: None,
+                source: s.into(),
+            }
+            .into_owned()
         })
     }
 }
@@ -297,42 +310,25 @@ impl ValueMatch {
 }
 
 #[derive(Debug, Error, Diagnostic)]
-#[error("some directives had no effect")]
-#[diagnostic(severity(error))]
-struct Warnings {
-    #[related]
-    ignored: Option<IgnoredDirectives>,
-    #[related]
-    disabled: Option<DisabledDirectives>,
-}
-
-#[derive(Debug, Error, Diagnostic)]
 #[error("{} directives were ignored as invalid", .0.len())]
 #[diagnostic(severity(warning))]
 struct IgnoredDirectives(#[related] Vec<IgnoredDirective>);
 
-// TODO(rust-lang/rust#63063): public for Directive as FromStr;
-// should be erased to impl Diagnostic for that impl.
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
-pub(super) enum IgnoredDirective {
+enum IgnoredDirective {
     #[error("invalid target specified")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidTarget))]
     InvalidTarget {
         #[label]
         span: SourceSpan,
     },
     #[error("invalid level filter specified")]
-    #[diagnostic(
-        code(tracing_filter::legacy::InvalidLevel),
-        help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE")
-    )]
+    #[diagnostic(help("valid level filters are OFF, ERROR, WARN, INFO, DEBUG, or TRACE"))]
     InvalidLevel {
         #[label]
         span: SourceSpan,
     },
     #[error("invalid regex specified")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidRegex))]
     InvalidRegex {
         // no, we are not going to parse the formatted regex error
         // in order to translate it into miette span/labels
@@ -342,13 +338,11 @@ pub(super) enum IgnoredDirective {
         span: SourceSpan,
     },
     #[error("invalid trailing characters")]
-    #[diagnostic(code(tracing_filter::legacy::InvalidTrailing))]
     InvalidTrailing {
         #[label]
         span: SourceSpan,
     },
     #[error("unclosed span directive")]
-    #[diagnostic(code(tracing_filter::legacy::UnclosedSpan))]
     UnclosedSpan {
         #[label("opened here")]
         open: SourceSpan,
@@ -359,7 +353,7 @@ pub(super) enum IgnoredDirective {
 
 #[derive(Debug, Error, Diagnostic)]
 #[diagnostic(severity(warning))]
-#[error("{} directives would enabled traces that are disabled statically", .directives.len())]
+#[error("{} directives would enable traces that are disabled statically", .directives.len())]
 struct DisabledDirectives {
     #[related]
     directives: Vec<DisabledDirective>,

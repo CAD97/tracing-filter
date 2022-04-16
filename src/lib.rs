@@ -13,13 +13,15 @@ macro_rules! try_lock {
     }
 }
 
+mod diagnostics;
 mod layer;
 pub mod legacy;
 pub mod simple;
 
 pub(crate) const DEFAULT_ENV: &str = "RUST_LOG";
 
-pub use self::layer::FilterLayer;
+#[doc(inline)]
+pub use self::{diagnostics::Diagnostics, layer::FilterLayer};
 #[doc(no_inline)]
 pub use tracing_subscriber::layer::Filter;
 

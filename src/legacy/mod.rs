@@ -4,8 +4,7 @@
 //! [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html
 
 use {
-    crate::DEFAULT_ENV,
-    miette::ErrReport,
+    crate::{Diagnostics, DEFAULT_ENV},
     std::{cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt, sync::RwLock},
     thread_local::ThreadLocal,
     tracing_core::{callsite, span, Interest, LevelFilter, Metadata, Subscriber},
@@ -34,20 +33,36 @@ impl Filter {
     /// Create a new filter, ignoring any invalid directives. It is highly
     /// recommended you use [`Self::parse`] instead, and display the warnings for
     /// ignored directives.
-    pub fn new(spec: impl AsRef<str> + Into<String>) -> Self {
+    pub fn new(spec: &str) -> Self {
         Self::parse(spec).0
     }
 
     /// Create a filter from the default `RUST_LOG` environment.
-    pub fn from_default_env() -> (Self, Option<ErrReport>) {
+    pub fn from_default_env() -> (Self, Option<Diagnostics<'static>>) {
         Self::from_env(DEFAULT_ENV)
     }
 
     /// Create a filter from the environment.
-    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<ErrReport>) {
+    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<Diagnostics<'static>>) {
         if let Ok(s) = env::var(key) {
-            let (filter, err) = Self::parse(s);
-            (filter, err)
+            let (filter, err) = Self::parse(&s);
+            (
+                filter,
+                #[allow(clippy::manual_map)]
+                match err {
+                    None => None,
+                    Some(x) => Some({
+                        let x = Diagnostics {
+                            source: "".into(),
+                            ..x
+                        };
+                        Diagnostics {
+                            source: s.into(),
+                            ..x
+                        }
+                    }),
+                },
+            )
         } else {
             Self::parse("")
         }
