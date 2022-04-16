@@ -1,14 +1,9 @@
 #![cfg(not(target_family = "wasm"))]
-#![cfg(feature = "fancy-errors")]
 
 use {
     std::{fs, path::Path},
-    tracing_filter::{legacy, simple},
+    tracing_filter::{legacy, simple, DiagnosticsTheme},
 };
-
-fn decolor(s: String) -> String {
-    String::from_utf8(strip_ansi_escapes::strip(s).unwrap()).unwrap()
-}
 
 #[test]
 fn snapshot_simple_filter_parser() {
@@ -16,21 +11,25 @@ fn snapshot_simple_filter_parser() {
         let src = fs::read_to_string(path).unwrap();
         match simple::Filter::parse(&src) {
             (Some(filter), Some(report)) => {
-                let report = format!("{report:?}");
-                insta::assert_snapshot!(
-                    Some("simple"),
-                    format!("{filter}\n\n{}", decolor(report)),
-                    &src
-                )
+                assert!(!report.is_error());
+                let warn = report
+                    .warn(DiagnosticsTheme::UnicodeNocolor)
+                    .map(|x| x.to_string())
+                    .unwrap_or_default();
+                insta::assert_snapshot!(Some("simple"), format!("{filter}\n\n{warn}"), &src)
             },
             (Some(filter), None) => {
                 insta::assert_snapshot!(Some("simple"), format!("{filter}\n(no warnings)"), &src)
             },
             (None, Some(report)) => {
-                let report = format!("{report:?}");
+                assert!(!report.is_warning());
+                let error = report
+                    .error(DiagnosticsTheme::UnicodeNocolor)
+                    .map(|x| x.to_string())
+                    .unwrap_or_default();
                 insta::assert_snapshot!(
                     Some("simple"),
-                    format!("(compilation failed)\n\n{}", decolor(report)),
+                    format!("(compilation failed)\n\n{error}"),
                     &src
                 )
             },
@@ -49,12 +48,12 @@ fn snapshot_legacy_filter_parser() {
         let src = fs::read_to_string(path).unwrap();
         match legacy::Filter::parse(&src) {
             (filter, Some(report)) => {
-                let report = format!("{report:?}");
-                insta::assert_snapshot!(
-                    Some("legacy"),
-                    format!("{filter}\n\n{}", decolor(report)),
-                    &src
-                )
+                assert!(!report.is_error());
+                let warn = report
+                    .warn(DiagnosticsTheme::UnicodeNocolor)
+                    .map(|x| x.to_string())
+                    .unwrap_or_default();
+                insta::assert_snapshot!(Some("legacy"), format!("{filter}\n\n{warn}"), &src)
             },
             (filter, None) => {
                 insta::assert_snapshot!(Some("legacy"), format!("{filter}\n\n(no warnings)"), &src)

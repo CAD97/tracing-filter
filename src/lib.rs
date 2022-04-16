@@ -21,7 +21,10 @@ pub mod simple;
 pub(crate) const DEFAULT_ENV: &str = "RUST_LOG";
 
 #[doc(inline)]
-pub use self::{diagnostics::Diagnostics, layer::FilterLayer};
+pub use self::{
+    diagnostics::{Diagnostics, DiagnosticsTheme},
+    layer::FilterLayer,
+};
 #[doc(no_inline)]
 pub use tracing_subscriber::layer::Filter;
 
