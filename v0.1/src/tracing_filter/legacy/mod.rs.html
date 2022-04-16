@@ -206,14 +206,28 @@
 <span id="201">201</span>
 <span id="202">202</span>
 <span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Support for legacy filters, which match tracing-subscriber&#39;s legacy</span>
 <span class="doccomment">//! `EnvFilter` format.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html</span>
 
 <span class="kw">use</span> {
-    <span class="ident"><span class="kw">crate</span>::DEFAULT_ENV</span>,
-    <span class="ident">miette::ErrReport</span>,
+    <span class="kw">crate</span>::{<span class="ident">Diagnostics</span>, <span class="ident">DEFAULT_ENV</span>},
     <span class="ident">std</span>::{<span class="ident">cell::RefCell</span>, <span class="ident">collections::HashMap</span>, <span class="ident">env</span>, <span class="ident">ffi::OsStr</span>, <span class="ident">fmt</span>, <span class="ident">sync::RwLock</span>},
     <span class="ident">thread_local::ThreadLocal</span>,
     <span class="ident">tracing_core</span>::{<span class="ident">callsite</span>, <span class="ident">span</span>, <span class="ident">Interest</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>, <span class="ident">Subscriber</span>},
@@ -242,20 +256,36 @@
     <span class="doccomment">/// Create a new filter, ignoring any invalid directives. It is highly</span>
     <span class="doccomment">/// recommended you use [`Self::parse`] instead, and display the warnings for</span>
     <span class="doccomment">/// ignored directives.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">spec</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>) -&gt; <span class="self">Self</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">spec</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="self">Self</span> {
         <span class="ident"><span class="self">Self</span>::parse</span>(<span class="ident">spec</span>).<span class="number">0</span>
     }
 
     <span class="doccomment">/// Create a filter from the default `RUST_LOG` environment.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_default_env</span>() -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ErrReport</span><span class="op">&gt;</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_default_env</span>() -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
         <span class="ident"><span class="self">Self</span>::from_env</span>(<span class="ident">DEFAULT_ENV</span>)
     }
 
     <span class="doccomment">/// Create a filter from the environment.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_env</span>(<span class="ident">key</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">OsStr</span><span class="op">&gt;</span>) -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ErrReport</span><span class="op">&gt;</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_env</span>(<span class="ident">key</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">OsStr</span><span class="op">&gt;</span>) -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">s</span>) <span class="op">=</span> <span class="ident">env::var</span>(<span class="ident">key</span>) {
-            <span class="kw">let</span> (<span class="ident">filter</span>, <span class="ident">err</span>) <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse</span>(<span class="ident">s</span>);
-            (<span class="ident">filter</span>, <span class="ident">err</span>)
+            <span class="kw">let</span> (<span class="ident">filter</span>, <span class="ident">err</span>) <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
+            (
+                <span class="ident">filter</span>,
+                <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::manual_map</span>)]</span>
+                <span class="kw">match</span> <span class="ident">err</span> {
+                    <span class="prelude-val">None</span> =&gt; <span class="prelude-val">None</span>,
+                    <span class="prelude-val">Some</span>(<span class="ident">x</span>) =&gt; <span class="prelude-val">Some</span>({
+                        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">Diagnostics</span> {
+                            <span class="ident">source</span>: <span class="string">&quot;&quot;</span>.<span class="ident">into</span>(),
+                            ..<span class="ident">x</span>
+                        };
+                        <span class="ident">Diagnostics</span> {
+                            <span class="ident">source</span>: <span class="ident">s</span>.<span class="ident">into</span>(),
+                            ..<span class="ident">x</span>
+                        }
+                    }),
+                },
+            )
         } <span class="kw">else</span> {
             <span class="ident"><span class="self">Self</span>::parse</span>(<span class="string">&quot;&quot;</span>)
         }
@@ -410,5 +440,5 @@
     }
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.1 (0f231250b 2022-04-05)" ></div>
+</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.2 (7c13df853 2022-04-09)" ></div>
 </body></html>
