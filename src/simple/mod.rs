@@ -1,9 +1,8 @@
 //! Support for simple filters, which match `env_logger`'s filter format.
 
 use {
-    crate::DEFAULT_ENV,
+    crate::{Diagnostics, DEFAULT_ENV},
     compact_str::CompactStr,
-    miette::ErrReport,
     sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter, Metadata},
@@ -74,15 +73,31 @@ impl Filter {
     }
 
     /// Create a filter from the default `RUST_LOG` environment.
-    pub fn from_default_env() -> (Self, Option<ErrReport>) {
+    pub fn from_default_env() -> (Self, Option<Diagnostics<'static>>) {
         Self::from_env(DEFAULT_ENV)
     }
 
     /// Create a filter from the environment.
-    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<ErrReport>) {
+    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<Diagnostics<'static>>) {
         if let Ok(s) = env::var(key) {
-            let (filter, err) = Self::parse(s);
-            (filter.unwrap_or_default(), err)
+            let (filter, err) = Self::parse(&s);
+            (
+                filter.unwrap_or_default(),
+                #[allow(clippy::manual_map)]
+                match err {
+                    None => None,
+                    Some(x) => Some({
+                        let x = Diagnostics {
+                            source: "".into(),
+                            ..x
+                        };
+                        Diagnostics {
+                            source: s.into(),
+                            ..x
+                        }
+                    }),
+                },
+            )
         } else {
             (Self::empty(), None)
         }
