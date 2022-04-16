@@ -125,7 +125,7 @@ impl fmt::Display for Diagnostics<'_> {
                 .finish()
         } else {
             if let Some(error) = &self.error {
-                writeln!(f, "{error}")?;
+                writeln!(f, "{}", error)?;
             }
 
             if !self.ignored.is_empty() {
@@ -135,12 +135,12 @@ impl fmt::Display for Diagnostics<'_> {
                     self.ignored.len()
                 )?;
                 for ignored in &self.ignored {
-                    writeln!(f, "{ignored}")?;
+                    writeln!(f, "{}", ignored)?;
                 }
             }
 
             if let Some(disabled) = &self.disabled {
-                writeln!(f, "{disabled}")?;
+                writeln!(f, "{}", disabled)?;
             }
 
             Ok(())
@@ -158,10 +158,10 @@ impl fmt::Debug for Diagnostics<'_> {
                 .finish()
         } else {
             if let Some(error) = self.error(DiagnosticsTheme::Guess) {
-                writeln!(f, "{error}")?;
+                writeln!(f, "{}", error)?;
             }
             if let Some(warn) = self.warn(DiagnosticsTheme::Guess) {
-                writeln!(f, "{warn}")?;
+                writeln!(f, "{}", warn)?;
             }
             Ok(())
         }
