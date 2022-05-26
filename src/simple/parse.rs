@@ -11,8 +11,8 @@ use {
 impl Filter {
     /// Parse a filter from its string representation.
     ///
-    /// Filter compilation can produce warnings even when it succeeds,
-    /// thus the nonstandard return type to provide an [`ErrReport`] on success.
+    /// Filter compilation can produce warnings even when it succeeds, thus
+    /// the nonstandard return type to provide [`Diagnostics`] on success.
     pub fn parse(spec: &str) -> (Option<Filter>, Option<Diagnostics<'_>>) {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0

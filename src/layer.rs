@@ -17,6 +17,7 @@ pub struct FilterLayer<F> {
 }
 
 impl<F> FilterLayer<F> {
+    /// Create a new filter layer using the provided filter.
     pub fn new(filter: F) -> Self {
         Self { filter }
     }

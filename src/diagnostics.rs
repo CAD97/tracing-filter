@@ -5,6 +5,7 @@ use {
     std::{borrow::Cow, error::Error, fmt},
 };
 
+/// Resulting diagnostics from compiling a filter directive string.
 pub struct Diagnostics<'a> {
     pub(crate) error: Option<Box<dyn Diagnostic + Send + Sync + 'static>>,
     pub(crate) ignored: Vec<Box<dyn Diagnostic + Send + Sync + 'static>>,
@@ -12,12 +13,18 @@ pub struct Diagnostics<'a> {
     pub(crate) source: Cow<'a, str>,
 }
 
+/// How to render a set of [`Diagnostics`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DiagnosticsTheme {
+    /// Render with ASCII art and ANSI colors.
     Ascii,
+    /// Render with ASCII art but no ANSI colors.
     AsciiNocolor,
+    /// Render with Unicode drawing characters and ANSI colors.
     Unicode,
+    /// Render with Unicode drawing characters but no ANSI colors.
     UnicodeNocolor,
+    /// Guess the best render format for stdout/stderr.
     Guess,
 }
 
@@ -36,18 +43,29 @@ impl DiagnosticsTheme {
 }
 
 impl Diagnostics<'_> {
+    /// Does this diagnostic set include any errors?
+    ///
+    /// An error indicates that the entire filter directive was rejected
+    /// as invalid because it could not be processed.
     pub fn is_error(&self) -> bool {
         self.error.is_some()
     }
 
+    /// Does this diagnostic set include any warnings?
+    ///
+    /// A warning indicates that a portion of a filter directive was rejected
+    /// as invalid because it could not be processed.
     pub fn is_warning(&self) -> bool {
         !self.ignored.is_empty() || self.disabled.is_some()
     }
 
+    /// Is this diagnostic set empty, indicating a successful compilation?
     pub fn is_empty(&self) -> bool {
         !self.is_error() && !self.is_warning()
     }
 
+    /// Create an owned version of the diagnostic set. This requires cloning the
+    /// directive string, which is normally just referenced.
     pub fn into_owned(self) -> Diagnostics<'static> {
         Diagnostics {
             error: self.error,
