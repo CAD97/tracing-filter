@@ -2,8 +2,7 @@ use {
     super::{Directive, Filter},
     crate::Diagnostics,
     miette::{Diagnostic, SourceSpan},
-    sorted_vec::ReverseSortedVec,
-    std::str::FromStr,
+    std::{cmp, str::FromStr},
     thiserror::Error,
     tracing_core::LevelFilter,
 };
@@ -11,8 +10,8 @@ use {
 impl Filter {
     /// Parse a filter from its string representation.
     ///
-    /// Filter compilation can produce warnings even when it succeeds,
-    /// thus the nonstandard return type to provide an [`ErrReport`] on success.
+    /// Filter compilation can produce warnings even when it succeeds, thus
+    /// the nonstandard return type to provide [`Diagnostics`] on success.
     pub fn parse(spec: &str) -> (Option<Filter>, Option<Diagnostics<'_>>) {
         // this code is adapted directly from env_logger 0.9.0
         // env_logger is licensed under MIT OR Apache-2.0
@@ -22,7 +21,7 @@ impl Filter {
             offset..offset + substr.len()
         };
 
-        let mut directives = ReverseSortedVec::new();
+        let mut directives = Vec::new();
         let mut parts = spec.split('/');
         let dirs = parts.next();
         let regex = parts.next();
@@ -83,10 +82,22 @@ impl Filter {
                         },
                         _ => unreachable!(),
                     };
-                directives.insert(Directive {
+                let directive = Directive {
                     target: name.map(Into::into),
                     level: log_level,
+                };
+                let ix = directives.binary_search_by(|x: &Directive| {
+                    let a = x.target.as_ref().map(|x| x.len()).unwrap_or(0);
+                    let b = directive.target.as_ref().map(|x| x.len()).unwrap_or(0);
+                    match a.cmp(&b) {
+                        cmp::Ordering::Equal => x.target.cmp(&directive.target),
+                        ordering => ordering,
+                    }
                 });
+                match ix {
+                    Ok(ix) => directives[ix] = directive,
+                    Err(ix) => directives.insert(ix, directive),
+                }
             }
         }
 

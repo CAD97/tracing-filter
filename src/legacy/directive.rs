@@ -2,14 +2,13 @@ use {
     super::matcher::{CallsiteMatch, CallsiteMatcher, FieldMatch, Match},
     crate::SmallVec,
     compact_str::CompactStr,
-    sorted_vec::SortedSet,
     std::{cmp::Ordering, collections::HashMap, fmt},
     tracing_core::{LevelFilter, Metadata},
 };
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct DirectiveSet<T: Ord> {
-    pub(super) directives: SortedSet<T>,
+    pub(super) directives: Vec<T>,
     pub(super) level: LevelFilter,
 }
 
@@ -58,7 +57,11 @@ impl<T: Ord> DirectiveSet<T> {
         // specificity (length of target + number of field filters). this
         // ensures that, when finding a directive to match a span or event, we
         // search the directive set in most specific first order.
-        self.directives.insert(directive);
+        let ix = self.directives.binary_search(&directive);
+        match ix {
+            Ok(ix) => self.directives[ix] = directive,
+            Err(ix) => self.directives.insert(ix, directive),
+        }
     }
 }
 
@@ -75,7 +78,7 @@ impl<T: Match + Ord> FromIterator<T> for DirectiveSet<T> {
 impl<T: Ord> Default for DirectiveSet<T> {
     fn default() -> Self {
         Self {
-            directives: SortedSet::new(),
+            directives: Vec::new(),
             level: LevelFilter::OFF,
         }
     }

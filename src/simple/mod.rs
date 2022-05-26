@@ -3,7 +3,6 @@
 use {
     crate::{Diagnostics, DEFAULT_ENV},
     compact_str::CompactStr,
-    sorted_vec::ReverseSortedVec,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter, Metadata},
     tracing_subscriber::layer::Context,
@@ -14,7 +13,7 @@ mod parse;
 /// A filter matching the semantics of the `env_logger` crate's filter format.
 #[derive(Debug, Default)]
 pub struct Filter {
-    directives: ReverseSortedVec<Directive>,
+    directives: Vec<Directive>,
     regex: Option<regex::Regex>,
 }
 
@@ -24,20 +23,20 @@ struct Directive {
     level: LevelFilter,
 }
 
-impl PartialOrd for Directive {
-    fn partial_cmp(&self, rhs: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
+// impl PartialOrd for Directive {
+//     fn partial_cmp(&self, rhs: &Self) -> Option<cmp::Ordering> {
+//         Some(self.cmp(rhs))
+//     }
+// }
 
-impl Ord for Directive {
-    fn cmp(&self, rhs: &Self) -> cmp::Ordering {
-        self.target
-            .as_deref()
-            .map(str::len)
-            .cmp(&rhs.target.as_deref().map(str::len))
-    }
-}
+// impl Ord for Directive {
+//     fn cmp(&self, rhs: &Self) -> cmp::Ordering {
+//         self.target
+//             .as_deref()
+//             .map(str::len)
+//             .cmp(&rhs.target.as_deref().map(str::len))
+//     }
+// }
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -65,9 +64,9 @@ impl Filter {
     }
 
     /// Create an empty filter (i.e. one that filters nothing out).
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
-            directives: ReverseSortedVec::new(),
+            directives: Vec::new(),
             regex: None,
         }
     }
@@ -87,13 +86,11 @@ impl Filter {
                 match err {
                     None => None,
                     Some(x) => Some({
-                        let x = Diagnostics {
-                            source: "".into(),
-                            ..x
-                        };
                         Diagnostics {
+                            error: x.error,
+                            ignored: x.ignored,
+                            disabled: x.disabled,
                             source: s.into(),
-                            ..x
                         }
                     }),
                 },
@@ -115,7 +112,19 @@ impl Filter {
     ) {
         let target = target.map(Into::into).map(Into::into);
         let level = level.into();
-        self.directives.insert(Directive { target, level });
+        let directive = Directive { target, level };
+        let ix = self.directives.binary_search_by(|x: &Directive| {
+            let a = x.target.as_ref().map(|x| x.len()).unwrap_or(0);
+            let b = directive.target.as_ref().map(|x| x.len()).unwrap_or(0);
+            match a.cmp(&b) {
+                cmp::Ordering::Equal => x.target.cmp(&directive.target),
+                ordering => ordering,
+            }
+        });
+        match ix {
+            Ok(ix) => self.directives[ix] = directive,
+            Err(ix) => self.directives.insert(ix, directive),
+        }
     }
 
     /// Builder-API version of [`Self::add_directive`].
@@ -187,7 +196,7 @@ impl Filter {
             return level <= LevelFilter::ERROR;
         }
 
-        for directive in self.directives.iter() {
+        for directive in self.directives.iter().rev() {
             match &directive.target {
                 Some(name) if !target.starts_with(&**name) => {},
                 Some(..) | None => return level <= directive.level,

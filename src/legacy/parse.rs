@@ -31,8 +31,8 @@ impl FromStr for Filter {
 impl Filter {
     /// Parse a filter from its string representation.
     ///
-    /// Filter compilation can produce warnings even when it succeeds,
-    /// thus the nonstandard return type to provide an [`ErrReport`] on success.
+    /// Filter compilation can produce warnings even when it succeeds, thus
+    /// the nonstandard return type to provide [`Diagnostics`] on success.
     pub fn parse(spec: &str) -> (Filter, Option<Diagnostics<'_>>) {
         let recover_span = |substr: &str| {
             let offset = substr.as_ptr() as usize - spec.as_ptr() as usize;
