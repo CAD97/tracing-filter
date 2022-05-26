@@ -64,6 +64,7 @@
 <span id="59">59</span>
 <span id="60">60</span>
 <span id="61">61</span>
+<span id="62">62</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="ident"><span class="kw">crate</span>::Filter</span>,
     <span class="ident">tracing_core</span>::{<span class="ident">span</span>, <span class="ident">Event</span>, <span class="ident">Interest</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>, <span class="ident">Subscriber</span>},
@@ -83,6 +84,7 @@
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span> <span class="ident">FilterLayer</span><span class="op">&lt;</span><span class="ident">F</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Create a new filter layer using the provided filter.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">filter</span>: <span class="ident">F</span>) -&gt; <span class="self">Self</span> {
         <span class="self">Self</span> { <span class="ident">filter</span> }
     }
@@ -126,5 +128,5 @@
     }
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.2 (7c13df853 2022-04-09)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0-beta.2 (daf68b1f7 2022-05-19)" ></div>
 </body></html>

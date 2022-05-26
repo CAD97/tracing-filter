@@ -222,6 +222,24 @@
 <span id="217">217</span>
 <span id="218">218</span>
 <span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">miette</span>::{<span class="ident">GraphicalReportHandler</span>, <span class="ident">GraphicalTheme</span>};
 
 <span class="kw">use</span> {
@@ -229,6 +247,7 @@
     <span class="ident">std</span>::{<span class="ident">borrow::Cow</span>, <span class="ident">error::Error</span>, <span class="ident">fmt</span>},
 };
 
+<span class="doccomment">/// Resulting diagnostics from compiling a filter directive string.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">error</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Diagnostic</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">ignored</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">Diagnostic</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>,
@@ -236,12 +255,18 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">source</span>: <span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">str</span><span class="op">&gt;</span>,
 }
 
+<span class="doccomment">/// How to render a set of [`Diagnostics`].</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Hash</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">DiagnosticsTheme</span> {
+    <span class="doccomment">/// Render with ASCII art and ANSI colors.</span>
     <span class="ident">Ascii</span>,
+    <span class="doccomment">/// Render with ASCII art but no ANSI colors.</span>
     <span class="ident">AsciiNocolor</span>,
+    <span class="doccomment">/// Render with Unicode drawing characters and ANSI colors.</span>
     <span class="ident">Unicode</span>,
+    <span class="doccomment">/// Render with Unicode drawing characters but no ANSI colors.</span>
     <span class="ident">UnicodeNocolor</span>,
+    <span class="doccomment">/// Guess the best render format for stdout/stderr.</span>
     <span class="ident">Guess</span>,
 }
 
@@ -260,18 +285,29 @@
 }
 
 <span class="kw">impl</span> <span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Does this diagnostic set include any errors?</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// An error indicates that the entire filter directive was rejected</span>
+    <span class="doccomment">/// as invalid because it could not be processed.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_error</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
         <span class="self">self</span>.<span class="ident">error</span>.<span class="ident">is_some</span>()
     }
 
+    <span class="doccomment">/// Does this diagnostic set include any warnings?</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// A warning indicates that a portion of a filter directive was rejected</span>
+    <span class="doccomment">/// as invalid because it could not be processed.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_warning</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
         <span class="op">!</span><span class="self">self</span>.<span class="ident">ignored</span>.<span class="ident">is_empty</span>() <span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">disabled</span>.<span class="ident">is_some</span>()
     }
 
+    <span class="doccomment">/// Is this diagnostic set empty, indicating a successful compilation?</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_empty</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
         <span class="op">!</span><span class="self">self</span>.<span class="ident">is_error</span>() <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">is_warning</span>()
     }
 
+    <span class="doccomment">/// Create an owned version of the diagnostic set. This requires cloning the</span>
+    <span class="doccomment">/// directive string, which is normally just referenced.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_owned</span>(<span class="self">self</span>) -&gt; <span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span> {
         <span class="ident">Diagnostics</span> {
             <span class="ident">error</span>: <span class="self">self</span>.<span class="ident">error</span>,
@@ -442,5 +478,5 @@
     }
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.2 (7c13df853 2022-04-09)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0-beta.2 (daf68b1f7 2022-05-19)" ></div>
 </body></html>

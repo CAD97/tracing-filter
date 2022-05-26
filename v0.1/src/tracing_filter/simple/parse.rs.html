@@ -172,12 +172,22 @@
 <span id="167">167</span>
 <span id="168">168</span>
 <span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="kw">super</span>::{<span class="ident">Directive</span>, <span class="ident">Filter</span>},
     <span class="ident"><span class="kw">crate</span>::Diagnostics</span>,
     <span class="ident">miette</span>::{<span class="ident">Diagnostic</span>, <span class="ident">SourceSpan</span>},
-    <span class="ident">sorted_vec::ReverseSortedVec</span>,
-    <span class="ident">std::str::FromStr</span>,
+    <span class="ident">std</span>::{<span class="ident">cmp</span>, <span class="ident">str::FromStr</span>},
     <span class="ident">thiserror::Error</span>,
     <span class="ident">tracing_core::LevelFilter</span>,
 };
@@ -185,8 +195,8 @@
 <span class="kw">impl</span> <span class="ident">Filter</span> {
     <span class="doccomment">/// Parse a filter from its string representation.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Filter compilation can produce warnings even when it succeeds,</span>
-    <span class="doccomment">/// thus the nonstandard return type to provide an [`ErrReport`] on success.</span>
+    <span class="doccomment">/// Filter compilation can produce warnings even when it succeeds, thus</span>
+    <span class="doccomment">/// the nonstandard return type to provide [`Diagnostics`] on success.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse</span>(<span class="ident">spec</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; (<span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Filter</span><span class="op">&gt;</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
         <span class="comment">// this code is adapted directly from env_logger 0.9.0</span>
         <span class="comment">// env_logger is licensed under MIT OR Apache-2.0</span>
@@ -196,7 +206,7 @@
             <span class="ident">offset</span>..<span class="ident">offset</span> <span class="op">+</span> <span class="ident">substr</span>.<span class="ident">len</span>()
         };
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">directives</span> <span class="op">=</span> <span class="ident">ReverseSortedVec::new</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">directives</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">parts</span> <span class="op">=</span> <span class="ident">spec</span>.<span class="ident">split</span>(<span class="string">&#39;/&#39;</span>);
         <span class="kw">let</span> <span class="ident">dirs</span> <span class="op">=</span> <span class="ident">parts</span>.<span class="ident">next</span>();
         <span class="kw">let</span> <span class="ident">regex</span> <span class="op">=</span> <span class="ident">parts</span>.<span class="ident">next</span>();
@@ -257,10 +267,22 @@
                         },
                         <span class="kw">_</span> =&gt; <span class="macro">unreachable!</span>(),
                     };
-                <span class="ident">directives</span>.<span class="ident">insert</span>(<span class="ident">Directive</span> {
+                <span class="kw">let</span> <span class="ident">directive</span> <span class="op">=</span> <span class="ident">Directive</span> {
                     <span class="ident">target</span>: <span class="ident">name</span>.<span class="ident">map</span>(<span class="ident">Into::into</span>),
                     <span class="ident">level</span>: <span class="ident">log_level</span>,
+                };
+                <span class="kw">let</span> <span class="ident">ix</span> <span class="op">=</span> <span class="ident">directives</span>.<span class="ident">binary_search_by</span>(<span class="op">|</span><span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">Directive</span><span class="op">|</span> {
+                    <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">len</span>()).<span class="ident">unwrap_or</span>(<span class="number">0</span>);
+                    <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="ident">directive</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">len</span>()).<span class="ident">unwrap_or</span>(<span class="number">0</span>);
+                    <span class="kw">match</span> <span class="ident">a</span>.<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>) {
+                        <span class="ident">cmp::Ordering::Equal</span> =&gt; <span class="ident">x</span>.<span class="ident">target</span>.<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">directive</span>.<span class="ident">target</span>),
+                        <span class="ident">ordering</span> =&gt; <span class="ident">ordering</span>,
+                    }
                 });
+                <span class="kw">match</span> <span class="ident">ix</span> {
+                    <span class="prelude-val">Ok</span>(<span class="ident">ix</span>) =&gt; <span class="ident">directives</span>[<span class="ident">ix</span>] <span class="op">=</span> <span class="ident">directive</span>,
+                    <span class="prelude-val">Err</span>(<span class="ident">ix</span>) =&gt; <span class="ident">directives</span>.<span class="ident">insert</span>(<span class="ident">ix</span>, <span class="ident">directive</span>),
+                }
             }
         }
 
@@ -342,5 +364,5 @@
     },
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.2 (7c13df853 2022-04-09)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0-beta.2 (daf68b1f7 2022-05-19)" ></div>
 </body></html>

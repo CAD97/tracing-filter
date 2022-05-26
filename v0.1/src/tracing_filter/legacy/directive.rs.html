@@ -449,18 +449,20 @@
 <span id="444">444</span>
 <span id="445">445</span>
 <span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="ident"><span class="kw">super</span>::matcher</span>::{<span class="ident">CallsiteMatch</span>, <span class="ident">CallsiteMatcher</span>, <span class="ident">FieldMatch</span>, <span class="ident">Match</span>},
     <span class="ident"><span class="kw">crate</span>::SmallVec</span>,
     <span class="ident">compact_str::CompactStr</span>,
-    <span class="ident">sorted_vec::SortedSet</span>,
     <span class="ident">std</span>::{<span class="ident">cmp::Ordering</span>, <span class="ident">collections::HashMap</span>, <span class="ident">fmt</span>},
     <span class="ident">tracing_core</span>::{<span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>},
 };
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct</span> <span class="ident">DirectiveSet</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">directives</span>: <span class="ident">SortedSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">directives</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">level</span>: <span class="ident">LevelFilter</span>,
 }
 
@@ -509,7 +511,11 @@
         <span class="comment">// specificity (length of target + number of field filters). this</span>
         <span class="comment">// ensures that, when finding a directive to match a span or event, we</span>
         <span class="comment">// search the directive set in most specific first order.</span>
-        <span class="self">self</span>.<span class="ident">directives</span>.<span class="ident">insert</span>(<span class="ident">directive</span>);
+        <span class="kw">let</span> <span class="ident">ix</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">directives</span>.<span class="ident">binary_search</span>(<span class="kw-2">&amp;</span><span class="ident">directive</span>);
+        <span class="kw">match</span> <span class="ident">ix</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">ix</span>) =&gt; <span class="self">self</span>.<span class="ident">directives</span>[<span class="ident">ix</span>] <span class="op">=</span> <span class="ident">directive</span>,
+            <span class="prelude-val">Err</span>(<span class="ident">ix</span>) =&gt; <span class="self">self</span>.<span class="ident">directives</span>.<span class="ident">insert</span>(<span class="ident">ix</span>, <span class="ident">directive</span>),
+        }
     }
 }
 
@@ -526,7 +532,7 @@
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span>: <span class="ident">Ord</span><span class="op">&gt;</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">DirectiveSet</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> {
     <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
         <span class="self">Self</span> {
-            <span class="ident">directives</span>: <span class="ident">SortedSet::new</span>(),
+            <span class="ident">directives</span>: <span class="ident">Vec::new</span>(),
             <span class="ident">level</span>: <span class="ident">LevelFilter::OFF</span>,
         }
     }
@@ -896,5 +902,5 @@
     }
 }
 </code></pre></div>
-</section><section id="search" class="content hidden"></section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.61.0-beta.2 (7c13df853 2022-04-09)" ></div>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="tracing_filter" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.62.0-beta.2 (daf68b1f7 2022-05-19)" ></div>
 </body></html>
