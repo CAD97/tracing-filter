@@ -4,7 +4,7 @@ use {
     crate::{Diagnostics, DEFAULT_ENV},
     compact_str::CompactStr,
     sorted_vec::ReverseSortedVec,
-    std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
+    std::{borrow::Cow, cmp, cmp::Reverse, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter, Metadata},
     tracing_subscriber::layer::Context,
 };
@@ -41,7 +41,7 @@ impl Ord for Directive {
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for directive in &*self.directives {
+        for Reverse(directive) in &*self.directives {
             if let Some(target) = &directive.target {
                 write!(f, "{}=", target)?;
             }
@@ -87,13 +87,11 @@ impl Filter {
                 match err {
                     None => None,
                     Some(x) => Some({
-                        let x = Diagnostics {
-                            source: "".into(),
-                            ..x
-                        };
                         Diagnostics {
+                            error: x.error,
+                            ignored: x.ignored,
+                            disabled: x.disabled,
                             source: s.into(),
-                            ..x
                         }
                     }),
                 },
@@ -115,7 +113,7 @@ impl Filter {
     ) {
         let target = target.map(Into::into).map(Into::into);
         let level = level.into();
-        self.directives.insert(Directive { target, level });
+        self.directives.insert(Reverse(Directive { target, level }));
     }
 
     /// Builder-API version of [`Self::add_directive`].
@@ -187,7 +185,7 @@ impl Filter {
             return level <= LevelFilter::ERROR;
         }
 
-        for directive in self.directives.iter() {
+        for Reverse(directive) in self.directives.iter() {
             match &directive.target {
                 Some(name) if !target.starts_with(&**name) => {},
                 Some(..) | None => return level <= directive.level,

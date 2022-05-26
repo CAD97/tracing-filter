@@ -3,7 +3,7 @@ use {
     crate::Diagnostics,
     miette::{Diagnostic, SourceSpan},
     sorted_vec::ReverseSortedVec,
-    std::str::FromStr,
+    std::{cmp::Reverse, str::FromStr},
     thiserror::Error,
     tracing_core::LevelFilter,
 };
@@ -83,10 +83,10 @@ impl Filter {
                         },
                         _ => unreachable!(),
                     };
-                directives.insert(Directive {
+                directives.insert(Reverse(Directive {
                     target: name.map(Into::into),
                     level: log_level,
-                });
+                }));
             }
         }
 

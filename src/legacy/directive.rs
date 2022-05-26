@@ -58,7 +58,7 @@ impl<T: Ord> DirectiveSet<T> {
         // specificity (length of target + number of field filters). this
         // ensures that, when finding a directive to match a span or event, we
         // search the directive set in most specific first order.
-        self.directives.insert(directive);
+        self.directives.replace(directive);
     }
 }
 
