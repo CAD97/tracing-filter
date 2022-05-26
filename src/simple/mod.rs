@@ -3,8 +3,7 @@
 use {
     crate::{Diagnostics, DEFAULT_ENV},
     compact_str::CompactStr,
-    sorted_vec::ReverseSortedVec,
-    std::{borrow::Cow, cmp, cmp::Reverse, env, ffi::OsStr, fmt},
+    std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter, Metadata},
     tracing_subscriber::layer::Context,
 };
@@ -14,7 +13,7 @@ mod parse;
 /// A filter matching the semantics of the `env_logger` crate's filter format.
 #[derive(Debug, Default)]
 pub struct Filter {
-    directives: ReverseSortedVec<Directive>,
+    directives: Vec<Directive>,
     regex: Option<regex::Regex>,
 }
 
@@ -41,7 +40,7 @@ impl Ord for Directive {
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for Reverse(directive) in &*self.directives {
+        for directive in &*self.directives {
             if let Some(target) = &directive.target {
                 write!(f, "{}=", target)?;
             }
@@ -65,9 +64,9 @@ impl Filter {
     }
 
     /// Create an empty filter (i.e. one that filters nothing out).
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self {
-            directives: ReverseSortedVec::new(),
+            directives: Vec::new(),
             regex: None,
         }
     }
@@ -113,7 +112,9 @@ impl Filter {
     ) {
         let target = target.map(Into::into).map(Into::into);
         let level = level.into();
-        self.directives.insert(Reverse(Directive { target, level }));
+        let directive = Directive { target, level };
+        let ix = self.directives.partition_point(|x| *x > directive);
+        self.directives.insert(ix, directive);
     }
 
     /// Builder-API version of [`Self::add_directive`].
@@ -185,7 +186,7 @@ impl Filter {
             return level <= LevelFilter::ERROR;
         }
 
-        for Reverse(directive) in self.directives.iter() {
+        for directive in self.directives.iter() {
             match &directive.target {
                 Some(name) if !target.starts_with(&**name) => {},
                 Some(..) | None => return level <= directive.level,

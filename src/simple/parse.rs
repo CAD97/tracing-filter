@@ -2,8 +2,7 @@ use {
     super::{Directive, Filter},
     crate::Diagnostics,
     miette::{Diagnostic, SourceSpan},
-    sorted_vec::ReverseSortedVec,
-    std::{cmp::Reverse, str::FromStr},
+    std::str::FromStr,
     thiserror::Error,
     tracing_core::LevelFilter,
 };
@@ -22,7 +21,7 @@ impl Filter {
             offset..offset + substr.len()
         };
 
-        let mut directives = ReverseSortedVec::new();
+        let mut directives = Vec::new();
         let mut parts = spec.split('/');
         let dirs = parts.next();
         let regex = parts.next();
@@ -83,10 +82,12 @@ impl Filter {
                         },
                         _ => unreachable!(),
                     };
-                directives.insert(Reverse(Directive {
+                let directive = Directive {
                     target: name.map(Into::into),
                     level: log_level,
-                }));
+                };
+                let ix = directives.partition_point(|x| *x > directive);
+                directives.insert(ix, directive);
             }
         }
 
