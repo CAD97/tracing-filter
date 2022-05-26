@@ -23,20 +23,20 @@ struct Directive {
     level: LevelFilter,
 }
 
-impl PartialOrd for Directive {
-    fn partial_cmp(&self, rhs: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(rhs))
-    }
-}
+// impl PartialOrd for Directive {
+//     fn partial_cmp(&self, rhs: &Self) -> Option<cmp::Ordering> {
+//         Some(self.cmp(rhs))
+//     }
+// }
 
-impl Ord for Directive {
-    fn cmp(&self, rhs: &Self) -> cmp::Ordering {
-        self.target
-            .as_deref()
-            .map(str::len)
-            .cmp(&rhs.target.as_deref().map(str::len))
-    }
-}
+// impl Ord for Directive {
+//     fn cmp(&self, rhs: &Self) -> cmp::Ordering {
+//         self.target
+//             .as_deref()
+//             .map(str::len)
+//             .cmp(&rhs.target.as_deref().map(str::len))
+//     }
+// }
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -113,8 +113,18 @@ impl Filter {
         let target = target.map(Into::into).map(Into::into);
         let level = level.into();
         let directive = Directive { target, level };
-        let ix = self.directives.partition_point(|x| *x > directive);
-        self.directives.insert(ix, directive);
+        let ix = self.directives.binary_search_by(|x: &Directive| {
+            let a = x.target.as_ref().map(|x| x.len()).unwrap_or(0);
+            let b = directive.target.as_ref().map(|x| x.len()).unwrap_or(0);
+            match a.cmp(&b) {
+                cmp::Ordering::Equal => x.target.cmp(&directive.target),
+                ordering => ordering,
+            }
+        });
+        match ix {
+            Ok(ix) => self.directives[ix] = directive,
+            Err(ix) => self.directives.insert(ix, directive),
+        }
     }
 
     /// Builder-API version of [`Self::add_directive`].
@@ -186,7 +196,7 @@ impl Filter {
             return level <= LevelFilter::ERROR;
         }
 
-        for directive in self.directives.iter() {
+        for directive in self.directives.iter().rev() {
             match &directive.target {
                 Some(name) if !target.starts_with(&**name) => {},
                 Some(..) | None => return level <= directive.level,

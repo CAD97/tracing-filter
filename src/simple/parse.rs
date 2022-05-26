@@ -2,7 +2,7 @@ use {
     super::{Directive, Filter},
     crate::Diagnostics,
     miette::{Diagnostic, SourceSpan},
-    std::str::FromStr,
+    std::{cmp, str::FromStr},
     thiserror::Error,
     tracing_core::LevelFilter,
 };
@@ -86,8 +86,18 @@ impl Filter {
                     target: name.map(Into::into),
                     level: log_level,
                 };
-                let ix = directives.partition_point(|x| *x > directive);
-                directives.insert(ix, directive);
+                let ix = directives.binary_search_by(|x: &Directive| {
+                    let a = x.target.as_ref().map(|x| x.len()).unwrap_or(0);
+                    let b = directive.target.as_ref().map(|x| x.len()).unwrap_or(0);
+                    match a.cmp(&b) {
+                        cmp::Ordering::Equal => x.target.cmp(&directive.target),
+                        ordering => ordering,
+                    }
+                });
+                match ix {
+                    Ok(ix) => directives[ix] = directive,
+                    Err(ix) => directives.insert(ix, directive),
+                }
             }
         }
 

@@ -57,8 +57,11 @@ impl<T: Ord> DirectiveSet<T> {
         // specificity (length of target + number of field filters). this
         // ensures that, when finding a directive to match a span or event, we
         // search the directive set in most specific first order.
-        let ix = self.directives.partition_point(|x| *x < directive);
-        self.directives.insert(ix, directive);
+        let ix = self.directives.binary_search(&directive);
+        match ix {
+            Ok(ix) => self.directives[ix] = directive,
+            Err(ix) => self.directives.insert(ix, directive),
+        }
     }
 }
 
