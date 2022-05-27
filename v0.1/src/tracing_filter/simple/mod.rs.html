@@ -225,6 +225,20 @@
 <span id="220">220</span>
 <span id="221">221</span>
 <span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Support for simple filters, which match `env_logger`&#39;s filter format.</span>
 
 <span class="kw">use</span> {
@@ -237,7 +251,35 @@
 
 <span class="kw">mod</span> <span class="ident">parse</span>;
 
-<span class="doccomment">/// A filter matching the semantics of the `env_logger` crate&#39;s filter format.</span>
+<span class="doccomment">/// A filter matching the semantics of the [`env_logger`] crate&#39;s filter format.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// [`env_logger`]: https://docs.rs/env_logger/0.9.0/env_logger/</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// # Example</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Use the `RUST_LOG` filter if it is set, but provide a fallback filter if the</span>
+<span class="doccomment">/// environment variable is not set.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// ```rust</span>
+<span class="doccomment">/// # use tracing_filter::{DiagnosticsTheme, legacy::Filter};</span>
+<span class="doccomment">/// # use {tracing::{error, warn}, tracing_subscriber::prelude::*};</span>
+<span class="doccomment">/// let (filter, diagnostics) = Filter::from_default_env()</span>
+<span class="doccomment">///     .unwrap_or_else(|| Filter::parse(&quot;noisy_crate=warn,info&quot;));</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// tracing_subscriber::registry()</span>
+<span class="doccomment">///     .with(filter.layer())</span>
+<span class="doccomment">///     .with(tracing_subscriber::fmt::layer())</span>
+<span class="doccomment">///     .init();</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// if let Some(diagnostics) = diagnostics {</span>
+<span class="doccomment">///     if let Some(error) = diagnostics.error(DiagnosticsTheme::default()) {</span>
+<span class="doccomment">///         error!(&quot;{error}&quot;);</span>
+<span class="doccomment">///     }</span>
+<span class="doccomment">///     if let Some(warn) = diagnostics.warn(DiagnosticsTheme::default()) {</span>
+<span class="doccomment">///         warn!(&quot;{warn}&quot;);</span>
+<span class="doccomment">///     }</span>
+<span class="doccomment">/// }</span>
+<span class="doccomment">/// ```</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Default</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Filter</span> {
     <span class="ident">directives</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Directive</span><span class="op">&gt;</span>,
@@ -249,21 +291,6 @@
     <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
     <span class="ident">level</span>: <span class="ident">LevelFilter</span>,
 }
-
-<span class="comment">// impl PartialOrd for Directive {</span>
-<span class="comment">//     fn partial_cmp(&amp;self, rhs: &amp;Self) -&gt; Option&lt;cmp::Ordering&gt; {</span>
-<span class="comment">//         Some(self.cmp(rhs))</span>
-<span class="comment">//     }</span>
-<span class="comment">// }</span>
-
-<span class="comment">// impl Ord for Directive {</span>
-<span class="comment">//     fn cmp(&amp;self, rhs: &amp;Self) -&gt; cmp::Ordering {</span>
-<span class="comment">//         self.target</span>
-<span class="comment">//             .as_deref()</span>
-<span class="comment">//             .map(str::len)</span>
-<span class="comment">//             .cmp(&amp;rhs.target.as_deref().map(str::len))</span>
-<span class="comment">//     }</span>
-<span class="comment">// }</span>
 
 <span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">Filter</span> {
     <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
@@ -299,32 +326,33 @@
     }
 
     <span class="doccomment">/// Create a filter from the default `RUST_LOG` environment.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_default_env</span>() -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_default_env</span>() -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
         <span class="ident"><span class="self">Self</span>::from_env</span>(<span class="ident">DEFAULT_ENV</span>)
     }
 
     <span class="doccomment">/// Create a filter from the environment.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_env</span>(<span class="ident">key</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">OsStr</span><span class="op">&gt;</span>) -&gt; (<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>) {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">s</span>) <span class="op">=</span> <span class="ident">env::var</span>(<span class="ident">key</span>) {
-            <span class="kw">let</span> (<span class="ident">filter</span>, <span class="ident">err</span>) <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
-            (
-                <span class="ident">filter</span>.<span class="ident">unwrap_or_default</span>(),
-                <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::manual_map</span>)]</span>
-                <span class="kw">match</span> <span class="ident">err</span> {
-                    <span class="prelude-val">None</span> =&gt; <span class="prelude-val">None</span>,
-                    <span class="prelude-val">Some</span>(<span class="ident">x</span>) =&gt; <span class="prelude-val">Some</span>({
-                        <span class="ident">Diagnostics</span> {
-                            <span class="ident">error</span>: <span class="ident">x</span>.<span class="ident">error</span>,
-                            <span class="ident">ignored</span>: <span class="ident">x</span>.<span class="ident">ignored</span>,
-                            <span class="ident">disabled</span>: <span class="ident">x</span>.<span class="ident">disabled</span>,
-                            <span class="ident">source</span>: <span class="ident">s</span>.<span class="ident">into</span>(),
-                        }
-                    }),
-                },
-            )
-        } <span class="kw">else</span> {
-            (<span class="ident"><span class="self">Self</span>::empty</span>(), <span class="prelude-val">None</span>)
-        }
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_env</span>(<span class="ident">key</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">OsStr</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="self">Self</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span><span class="op">&gt;</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">s</span> <span class="op">=</span> <span class="ident">env::var</span>(<span class="ident">key</span>).<span class="ident">ok</span>()<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">filter</span>, <span class="ident">err</span>) <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse</span>(<span class="kw-2">&amp;</span><span class="ident">s</span>);
+        <span class="prelude-val">Some</span>((
+            <span class="ident">filter</span>.<span class="ident">unwrap_or_default</span>(),
+            <span class="kw">match</span> <span class="ident">err</span> {
+                <span class="prelude-val">None</span> =&gt; <span class="prelude-val">None</span>,
+                <span class="prelude-val">Some</span>(<span class="ident">x</span>) =&gt; <span class="prelude-val">Some</span>({
+                    <span class="ident">Diagnostics</span> {
+                        <span class="ident">error</span>: <span class="ident">x</span>.<span class="ident">error</span>,
+                        <span class="ident">ignored</span>: <span class="ident">x</span>.<span class="ident">ignored</span>,
+                        <span class="ident">disabled</span>: <span class="ident">x</span>.<span class="ident">disabled</span>,
+                        <span class="ident">source</span>: <span class="ident">s</span>.<span class="ident">into</span>(),
+                    }
+                }),
+            },
+        ))
+    }
+
+    <span class="doccomment">/// Lift this filter to a filter layer.</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">layer</span>(<span class="self">self</span>) -&gt; <span class="ident"><span class="kw">crate</span>::FilterLayer</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
+        <span class="ident"><span class="kw">crate</span>::FilterLayer::new</span>(<span class="self">self</span>)
     }
 }
 

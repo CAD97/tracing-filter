@@ -270,6 +270,12 @@
     <span class="ident">Guess</span>,
 }
 
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">DiagnosticsTheme</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="ident">DiagnosticsTheme::Guess</span>
+    }
+}
+
 <span class="kw">impl</span> <span class="ident">DiagnosticsTheme</span> {
     <span class="kw">fn</span> <span class="ident">report_handler</span>(<span class="self">self</span>) -&gt; <span class="ident">GraphicalReportHandler</span> {
         <span class="kw">match</span> <span class="self">self</span> {
@@ -285,18 +291,12 @@
 }
 
 <span class="kw">impl</span> <span class="ident">Diagnostics</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Does this diagnostic set include any errors?</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// An error indicates that the entire filter directive was rejected</span>
-    <span class="doccomment">/// as invalid because it could not be processed.</span>
+    <span class="doccomment">/// Does this diagnostic set include any [errors](Self::error)?</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_error</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
         <span class="self">self</span>.<span class="ident">error</span>.<span class="ident">is_some</span>()
     }
 
-    <span class="doccomment">/// Does this diagnostic set include any warnings?</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// A warning indicates that a portion of a filter directive was rejected</span>
-    <span class="doccomment">/// as invalid because it could not be processed.</span>
+    <span class="doccomment">/// Does this diagnostic set include any [warnings](Self::warn)?</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_warning</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
         <span class="op">!</span><span class="self">self</span>.<span class="ident">ignored</span>.<span class="ident">is_empty</span>() <span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">disabled</span>.<span class="ident">is_some</span>()
     }
