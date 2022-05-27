@@ -28,6 +28,12 @@ pub enum DiagnosticsTheme {
     Guess,
 }
 
+impl Default for DiagnosticsTheme {
+    fn default() -> Self {
+        DiagnosticsTheme::Guess
+    }
+}
+
 impl DiagnosticsTheme {
     fn report_handler(self) -> GraphicalReportHandler {
         match self {
@@ -43,18 +49,12 @@ impl DiagnosticsTheme {
 }
 
 impl Diagnostics<'_> {
-    /// Does this diagnostic set include any errors?
-    ///
-    /// An error indicates that the entire filter directive was rejected
-    /// as invalid because it could not be processed.
+    /// Does this diagnostic set include any [errors](Self::error)?
     pub fn is_error(&self) -> bool {
         self.error.is_some()
     }
 
-    /// Does this diagnostic set include any warnings?
-    ///
-    /// A warning indicates that a portion of a filter directive was rejected
-    /// as invalid because it could not be processed.
+    /// Does this diagnostic set include any [warnings](Self::warn)?
     pub fn is_warning(&self) -> bool {
         !self.ignored.is_empty() || self.disabled.is_some()
     }
