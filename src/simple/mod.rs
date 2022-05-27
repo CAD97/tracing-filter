@@ -10,7 +10,35 @@ use {
 
 mod parse;
 
-/// A filter matching the semantics of the `env_logger` crate's filter format.
+/// A filter matching the semantics of the [`env_logger`] crate's filter format.
+///
+/// [`env_logger`]: https://docs.rs/env_logger/0.9.0/env_logger/
+///
+/// # Example
+///
+/// Use the `RUST_LOG` filter if it is set, but provide a fallback filter if the
+/// environment variable is not set.
+///
+/// ```rust
+/// # use tracing_filter::{DiagnosticsTheme, legacy::Filter};
+/// # use {tracing::{error, warn}, tracing_subscriber::prelude::*};
+/// let (filter, diagnostics) = Filter::from_default_env()
+///     .unwrap_or_else(|| Filter::parse("noisy_crate=warn,info"));
+///
+/// tracing_subscriber::registry()
+///     .with(filter.layer())
+///     .with(tracing_subscriber::fmt::layer())
+///     .init();
+///
+/// if let Some(diagnostics) = diagnostics {
+///     if let Some(error) = diagnostics.error(DiagnosticsTheme::default()) {
+///         error!("{error}");
+///     }
+///     if let Some(warn) = diagnostics.warn(DiagnosticsTheme::default()) {
+///         warn!("{warn}");
+///     }
+/// }
+/// ```
 #[derive(Debug, Default)]
 pub struct Filter {
     directives: Vec<Directive>,
@@ -22,21 +50,6 @@ struct Directive {
     target: Option<CompactStr>,
     level: LevelFilter,
 }
-
-// impl PartialOrd for Directive {
-//     fn partial_cmp(&self, rhs: &Self) -> Option<cmp::Ordering> {
-//         Some(self.cmp(rhs))
-//     }
-// }
-
-// impl Ord for Directive {
-//     fn cmp(&self, rhs: &Self) -> cmp::Ordering {
-//         self.target
-//             .as_deref()
-//             .map(str::len)
-//             .cmp(&rhs.target.as_deref().map(str::len))
-//     }
-// }
 
 impl fmt::Display for Filter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -72,32 +85,33 @@ impl Filter {
     }
 
     /// Create a filter from the default `RUST_LOG` environment.
-    pub fn from_default_env() -> (Self, Option<Diagnostics<'static>>) {
+    pub fn from_default_env() -> Option<(Self, Option<Diagnostics<'static>>)> {
         Self::from_env(DEFAULT_ENV)
     }
 
     /// Create a filter from the environment.
-    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<Diagnostics<'static>>) {
-        if let Ok(s) = env::var(key) {
-            let (filter, err) = Self::parse(&s);
-            (
-                filter.unwrap_or_default(),
-                #[allow(clippy::manual_map)]
-                match err {
-                    None => None,
-                    Some(x) => Some({
-                        Diagnostics {
-                            error: x.error,
-                            ignored: x.ignored,
-                            disabled: x.disabled,
-                            source: s.into(),
-                        }
-                    }),
-                },
-            )
-        } else {
-            (Self::empty(), None)
-        }
+    pub fn from_env(key: impl AsRef<OsStr>) -> Option<(Self, Option<Diagnostics<'static>>)> {
+        let s = env::var(key).ok()?;
+        let (filter, err) = Self::parse(&s);
+        Some((
+            filter.unwrap_or_default(),
+            match err {
+                None => None,
+                Some(x) => Some({
+                    Diagnostics {
+                        error: x.error,
+                        ignored: x.ignored,
+                        disabled: x.disabled,
+                        source: s.into(),
+                    }
+                }),
+            },
+        ))
+    }
+
+    /// Lift this filter to a filter layer.
+    pub fn layer(self) -> crate::FilterLayer<Self> {
+        crate::FilterLayer::new(self)
     }
 }
 

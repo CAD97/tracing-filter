@@ -28,6 +28,12 @@ pub enum DiagnosticsTheme {
     Guess,
 }
 
+impl Default for DiagnosticsTheme {
+    fn default() -> Self {
+        DiagnosticsTheme::Guess
+    }
+}
+
 impl DiagnosticsTheme {
     fn report_handler(self) -> GraphicalReportHandler {
         match self {

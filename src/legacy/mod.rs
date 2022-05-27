@@ -20,6 +20,32 @@ mod tests;
 /// A filter matching tracing-subscriber's legacy [`EnvFilter`] format.
 ///
 /// [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html
+///
+/// # Example
+///
+/// Use the `RUST_LOG` filter if it is set, but provide a fallback filter if the
+/// environment variable is not set.
+///
+/// ```rust
+/// # use tracing_filter::{DiagnosticsTheme, legacy::Filter};
+/// # use {tracing::{error, warn}, tracing_subscriber::prelude::*};
+/// let (filter, diagnostics) = Filter::from_default_env()
+///     .unwrap_or_else(|| Filter::parse("noisy_crate=warn,info"));
+///
+/// tracing_subscriber::registry()
+///     .with(filter.layer())
+///     .with(tracing_subscriber::fmt::layer())
+///     .init();
+///
+/// if let Some(diagnostics) = diagnostics {
+///     if let Some(error) = diagnostics.error(DiagnosticsTheme::default()) {
+///         error!("{error}");
+///     }
+///     if let Some(warn) = diagnostics.warn(DiagnosticsTheme::default()) {
+///         warn!("{warn}");
+///     }
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Filter {
     scope: ThreadLocal<RefCell<Vec<LevelFilter>>>,
@@ -37,35 +63,41 @@ impl Filter {
         Self::parse(spec).0
     }
 
+    /// Create an empty filter (i.e. one that filters nothing out).
+    pub fn empty() -> Self {
+        Self::parse("").0
+    }
+
     /// Create a filter from the default `RUST_LOG` environment.
-    pub fn from_default_env() -> (Self, Option<Diagnostics<'static>>) {
+    pub fn from_default_env() -> Option<(Self, Option<Diagnostics<'static>>)> {
         Self::from_env(DEFAULT_ENV)
     }
 
     /// Create a filter from the environment.
-    pub fn from_env(key: impl AsRef<OsStr>) -> (Self, Option<Diagnostics<'static>>) {
-        if let Ok(s) = env::var(key) {
-            let (filter, err) = Self::parse(&s);
-            (
-                filter,
-                #[allow(clippy::manual_map)]
-                match err {
-                    None => None,
-                    Some(x) => Some({
-                        let x = Diagnostics {
-                            source: "".into(),
-                            ..x
-                        };
-                        Diagnostics {
-                            source: s.into(),
-                            ..x
-                        }
-                    }),
-                },
-            )
-        } else {
-            Self::parse("")
-        }
+    ///
+    /// Returns `None` if the environment variable is not set.
+    pub fn from_env(key: impl AsRef<OsStr>) -> Option<(Self, Option<Diagnostics<'static>>)> {
+        let s = env::var(key).ok()?;
+        let (filter, err) = Self::parse(&s);
+        Some((
+            filter,
+            match err {
+                None => None,
+                Some(x) => Some({
+                    Diagnostics {
+                        error: x.error,
+                        ignored: x.ignored,
+                        disabled: x.disabled,
+                        source: s.into(),
+                    }
+                }),
+            },
+        ))
+    }
+
+    /// Lift this filter to a filter layer.
+    pub fn layer(self) -> crate::FilterLayer<Self> {
+        crate::FilterLayer::new(self)
     }
 }
 
