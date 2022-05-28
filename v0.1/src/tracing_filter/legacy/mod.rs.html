@@ -253,17 +253,28 @@
 <span id="248">248</span>
 <span id="249">249</span>
 <span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Support for legacy filters, which match tracing-subscriber&#39;s legacy</span>
 <span class="doccomment">//! `EnvFilter` format.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html</span>
 
 <span class="kw">use</span> {
+    <span class="ident"><span class="self">self</span>::matcher::SpanMatcher</span>,
     <span class="kw">crate</span>::{<span class="ident">Diagnostics</span>, <span class="ident">DEFAULT_ENV</span>},
     <span class="ident">std</span>::{<span class="ident">cell::RefCell</span>, <span class="ident">collections::HashMap</span>, <span class="ident">env</span>, <span class="ident">ffi::OsStr</span>, <span class="ident">fmt</span>, <span class="ident">sync::RwLock</span>},
     <span class="ident">thread_local::ThreadLocal</span>,
     <span class="ident">tracing_core</span>::{<span class="ident">callsite</span>, <span class="ident">span</span>, <span class="ident">Interest</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>, <span class="ident">Subscriber</span>},
-    <span class="ident">tracing_subscriber::layer::Context</span>,
+    <span class="ident">tracing_subscriber</span>::{
+        <span class="ident">layer::Context</span>,
+        <span class="ident">registry</span>::{<span class="ident">LookupSpan</span>, <span class="ident">SpanRef</span>},
+    },
 };
 
 <span class="kw">mod</span> <span class="ident">directive</span>;
@@ -306,7 +317,6 @@
     <span class="ident">scope</span>: <span class="ident">ThreadLocal</span><span class="op">&lt;</span><span class="ident">RefCell</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">LevelFilter</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">statics</span>: <span class="ident">directive::Statics</span>,
     <span class="ident">dynamics</span>: <span class="ident">directive::Dynamics</span>,
-    <span class="ident">by_id</span>: <span class="ident">RwLock</span><span class="op">&lt;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">span::Id</span>, <span class="ident">matcher::SpanMatcher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
     <span class="ident">by_cs</span>: <span class="ident">RwLock</span><span class="op">&lt;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">callsite::Identifier</span>, <span class="ident">matcher::CallsiteMatcher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 }
 
@@ -361,9 +371,9 @@
         <span class="op">!</span><span class="self">self</span>.<span class="ident">dynamics</span>.<span class="ident">directives</span>.<span class="ident">is_empty</span>()
     }
 
-    <span class="kw">fn</span> <span class="ident">cares_about_span</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">span</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>) -&gt; <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="ident">by_id</span> <span class="op">=</span> <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_id</span>.<span class="ident">read</span>(), <span class="kw">else</span> <span class="kw">return</span> <span class="bool-val">false</span>);
-        <span class="ident">by_id</span>.<span class="ident">contains_key</span>(<span class="ident">span</span>)
+    <span class="kw">fn</span> <span class="ident">cares_about_span</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">LookupSpan</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">span</span>: <span class="ident">SpanRef</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">R</span><span class="op">&gt;</span>) -&gt; <span class="ident">bool</span> {
+        <span class="kw">let</span> <span class="ident">ext</span> <span class="op">=</span> <span class="ident">span</span>.<span class="ident">extensions</span>();
+        <span class="ident">ext</span>.<span class="ident">get</span>::<span class="op">&lt;</span><span class="ident">SpanMatcher</span><span class="op">&gt;</span>().<span class="ident">is_some</span>()
     }
 
     <span class="kw">fn</span> <span class="ident">base_interest</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Interest</span> {
@@ -375,7 +385,7 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">Subscriber</span><span class="op">&gt;</span> <span class="ident"><span class="kw">crate</span>::Filter</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Filter</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">Subscriber</span> <span class="op">+</span> <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">LookupSpan</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="ident"><span class="kw">crate</span>::Filter</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Filter</span> {
     <span class="kw">fn</span> <span class="ident">enabled</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">metadata</span>: <span class="kw-2">&amp;</span><span class="ident">Metadata</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>, <span class="ident">_ctx</span>: <span class="kw-2">&amp;</span><span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) -&gt; <span class="ident">bool</span> {
         <span class="kw">let</span> <span class="ident">level</span> <span class="op">=</span> <span class="ident">metadata</span>.<span class="ident">level</span>();
 
@@ -440,43 +450,47 @@
         <span class="ident">std::cmp::max</span>(<span class="self">self</span>.<span class="ident">statics</span>.<span class="ident">level</span>.<span class="ident">into</span>(), <span class="self">self</span>.<span class="ident">dynamics</span>.<span class="ident">level</span>.<span class="ident">into</span>())
     }
 
-    <span class="kw">fn</span> <span class="ident">on_new_span</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">attrs</span>: <span class="kw-2">&amp;</span><span class="ident">span::Attributes</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="kw">_</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
+    <span class="kw">fn</span> <span class="ident">on_new_span</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">attrs</span>: <span class="kw-2">&amp;</span><span class="ident">span::Attributes</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
         <span class="kw">let</span> <span class="ident">by_cs</span> <span class="op">=</span> <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_cs</span>.<span class="ident">read</span>());
         <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">cs</span>) <span class="op">=</span> <span class="ident">by_cs</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">metadata</span>().<span class="ident">callsite</span>()) {
-            <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">cs</span>.<span class="ident">to_span_matcher</span>(<span class="ident">attrs</span>);
-            <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_id</span>.<span class="ident">write</span>()).<span class="ident">insert</span>(<span class="ident">id</span>.<span class="ident">clone</span>(), <span class="ident">span</span>);
+            <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">ctx</span>.<span class="ident">span</span>(<span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;span should be registered&quot;</span>);
+            <span class="kw">let</span> <span class="ident">matcher</span> <span class="op">=</span> <span class="ident">cs</span>.<span class="ident">to_span_matcher</span>(<span class="ident">attrs</span>);
+            <span class="ident">span</span>.<span class="ident">extensions_mut</span>().<span class="ident">insert</span>(<span class="ident">matcher</span>);
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">on_record</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">values</span>: <span class="kw-2">&amp;</span><span class="ident">span::Record</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>, <span class="ident">_ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">span</span>) <span class="op">=</span> <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_id</span>.<span class="ident">read</span>()).<span class="ident">get</span>(<span class="ident">id</span>) {
-            <span class="ident">span</span>.<span class="ident">record_update</span>(<span class="ident">values</span>);
+    <span class="kw">fn</span> <span class="ident">on_record</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">values</span>: <span class="kw-2">&amp;</span><span class="ident">span::Record</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>, <span class="ident">ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">ctx</span>.<span class="ident">span</span>(<span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;span should be registered&quot;</span>);
+        <span class="kw">let</span> <span class="ident">ext</span> <span class="op">=</span> <span class="ident">span</span>.<span class="ident">extensions</span>();
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">matcher</span>) <span class="op">=</span> <span class="ident">ext</span>.<span class="ident">get</span>::<span class="op">&lt;</span><span class="ident">SpanMatcher</span><span class="op">&gt;</span>() {
+            <span class="ident">matcher</span>.<span class="ident">record_update</span>(<span class="ident">values</span>);
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">on_enter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="kw">_</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
+    <span class="kw">fn</span> <span class="ident">on_enter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
         <span class="comment">// We _could_ push IDs to the stack instead, and use that to allow</span>
         <span class="comment">// changing the filter while a span is already entered. But that seems</span>
         <span class="comment">// much less efficient...</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">span</span>) <span class="op">=</span> <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_id</span>.<span class="ident">read</span>()).<span class="ident">get</span>(<span class="ident">id</span>) {
-            <span class="self">self</span>.<span class="ident">scope</span>.<span class="ident">get_or_default</span>().<span class="ident">borrow_mut</span>().<span class="ident">push</span>(<span class="ident">span</span>.<span class="ident">level</span>());
+        <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">ctx</span>.<span class="ident">span</span>(<span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;span should be registered&quot;</span>);
+        <span class="kw">let</span> <span class="ident">ext</span> <span class="op">=</span> <span class="ident">span</span>.<span class="ident">extensions</span>();
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">matcher</span>) <span class="op">=</span> <span class="ident">ext</span>.<span class="ident">get</span>::<span class="op">&lt;</span><span class="ident">SpanMatcher</span><span class="op">&gt;</span>() {
+            <span class="self">self</span>.<span class="ident">scope</span>
+                .<span class="ident">get_or_default</span>()
+                .<span class="ident">borrow_mut</span>()
+                .<span class="ident">push</span>(<span class="ident">matcher</span>.<span class="ident">level</span>());
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">on_exit</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">_ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cares_about_span</span>(<span class="ident">id</span>) {
+    <span class="kw">fn</span> <span class="ident">on_exit</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">span::Id</span>, <span class="ident">ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">ctx</span>.<span class="ident">span</span>(<span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;span should be registered&quot;</span>);
+        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">cares_about_span</span>(<span class="ident">span</span>) {
             <span class="self">self</span>.<span class="ident">scope</span>.<span class="ident">get_or_default</span>().<span class="ident">borrow_mut</span>().<span class="ident">pop</span>();
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">on_close</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">span::Id</span>, <span class="ident">_ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
-        <span class="comment">// If we don&#39;t need a write lock, avoid taking one.</span>
-        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">cares_about_span</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>) {
-            <span class="kw">return</span>;
-        }
-
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">by_id</span> <span class="op">=</span> <span class="macro">try_lock!</span>(<span class="self">self</span>.<span class="ident">by_id</span>.<span class="ident">write</span>());
-        <span class="ident">by_id</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>);
+    <span class="kw">fn</span> <span class="ident">on_close</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">span::Id</span>, <span class="ident">ctx</span>: <span class="ident">Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">S</span><span class="op">&gt;</span>) {
+        <span class="kw">let</span> <span class="ident">span</span> <span class="op">=</span> <span class="ident">ctx</span>.<span class="ident">span</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;span should be registered&quot;</span>);
+        <span class="ident">span</span>.<span class="ident">extensions_mut</span>().<span class="ident">remove</span>::<span class="op">&lt;</span><span class="ident">SpanMatcher</span><span class="op">&gt;</span>();
     }
 }
 
