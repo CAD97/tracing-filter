@@ -348,7 +348,7 @@
 <span id="343">343</span>
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="ident"><span class="kw">crate</span>::SmallVec</span>,
-    <span class="ident">compact_str::CompactStr</span>,
+    <span class="ident">compact_str::CompactString</span>,
     <span class="ident">matchers::Pattern</span>,
     <span class="ident">std</span>::{
         <span class="ident">cmp::Ordering</span>,
@@ -367,7 +367,7 @@
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct</span> <span class="ident">FieldMatch</span> {
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">name</span>: <span class="ident">CompactStr</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">name</span>: <span class="ident">CompactString</span>,
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">value</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ValueMatch</span><span class="op">&gt;</span>,
 }
 
@@ -401,7 +401,7 @@
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct</span> <span class="ident">PatternMatch</span> {
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">matcher</span>: <span class="ident">Pattern</span>,
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">pattern</span>: <span class="ident">CompactStr</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">pattern</span>: <span class="ident">CompactString</span>,
 }
 
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">trait</span> <span class="ident">Match</span> {

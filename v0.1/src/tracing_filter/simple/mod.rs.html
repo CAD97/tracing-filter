@@ -243,7 +243,7 @@
 
 <span class="kw">use</span> {
     <span class="kw">crate</span>::{<span class="ident">Diagnostics</span>, <span class="ident">DEFAULT_ENV</span>},
-    <span class="ident">compact_str::CompactStr</span>,
+    <span class="ident">compact_str::CompactString</span>,
     <span class="ident">std</span>::{<span class="ident">borrow::Cow</span>, <span class="ident">cmp</span>, <span class="ident">env</span>, <span class="ident">ffi::OsStr</span>, <span class="ident">fmt</span>},
     <span class="ident">tracing_core</span>::{<span class="ident">Interest</span>, <span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>},
     <span class="ident">tracing_subscriber::layer::Context</span>,
@@ -288,7 +288,7 @@
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">struct</span> <span class="ident">Directive</span> {
-    <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
+    <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactString</span><span class="op">&gt;</span>,
     <span class="ident">level</span>: <span class="ident">LevelFilter</span>,
 }
 

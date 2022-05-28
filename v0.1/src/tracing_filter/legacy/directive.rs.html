@@ -455,7 +455,7 @@
 </pre><pre class="rust"><code><span class="kw">use</span> {
     <span class="ident"><span class="kw">super</span>::matcher</span>::{<span class="ident">CallsiteMatch</span>, <span class="ident">CallsiteMatcher</span>, <span class="ident">FieldMatch</span>, <span class="ident">Match</span>},
     <span class="ident"><span class="kw">crate</span>::SmallVec</span>,
-    <span class="ident">compact_str::CompactStr</span>,
+    <span class="ident">compact_str::CompactString</span>,
     <span class="ident">std</span>::{<span class="ident">cmp::Ordering</span>, <span class="ident">collections::HashMap</span>, <span class="ident">fmt</span>},
     <span class="ident">tracing_core</span>::{<span class="ident">LevelFilter</span>, <span class="ident">Metadata</span>},
 };
@@ -470,9 +470,9 @@
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct</span> <span class="ident">DynamicDirective</span> {
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">span</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">span</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactString</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">fields</span>: <span class="ident">SmallVec</span><span class="op">&lt;</span><span class="ident">FieldMatch</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactString</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">level</span>: <span class="ident">LevelFilter</span>,
 }
 
@@ -480,8 +480,8 @@
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct</span> <span class="ident">StaticDirective</span> {
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">fields</span>: <span class="ident">SmallVec</span><span class="op">&lt;</span><span class="ident">CompactStr</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">target</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">CompactString</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">fields</span>: <span class="ident">SmallVec</span><span class="op">&lt;</span><span class="ident">CompactString</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">super</span>) <span class="ident">level</span>: <span class="ident">LevelFilter</span>,
 }
 
@@ -743,8 +743,8 @@
         <span class="kw">let</span> <span class="ident">ordering</span> <span class="op">=</span> <span class="self">self</span>
             .<span class="ident">target</span>
             .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="ident">CompactStr::len</span>)
-            .<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="ident">CompactStr::len</span>))
+            .<span class="ident">map</span>(<span class="ident">CompactString::len</span>)
+            .<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="ident">CompactString::len</span>))
             <span class="comment">// Next compare based on the presence of span names.</span>
             .<span class="ident">then_with</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">span</span>.<span class="ident">is_some</span>().<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">span</span>.<span class="ident">is_some</span>()))
             <span class="comment">// Then we compare how many fields are defined by each</span>
@@ -801,8 +801,8 @@
         <span class="kw">let</span> <span class="ident">ordering</span> <span class="op">=</span> <span class="self">self</span>
             .<span class="ident">target</span>
             .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="ident">CompactStr::len</span>)
-            .<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="ident">CompactStr::len</span>))
+            .<span class="ident">map</span>(<span class="ident">CompactString::len</span>)
+            .<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">target</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="ident">CompactString::len</span>))
             <span class="comment">// Then we compare how many field names are matched by each directive.</span>
             .<span class="ident">then_with</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">fields</span>.<span class="ident">len</span>().<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">other</span>.<span class="ident">fields</span>.<span class="ident">len</span>()))
             <span class="comment">// Finally, we fall back to lexicographical ordering if the directives are</span>
