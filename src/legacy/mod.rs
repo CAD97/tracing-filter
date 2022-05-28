@@ -4,11 +4,15 @@
 //! [`EnvFilter`]: https://docs.rs/tracing-subscriber/0.3/tracing_subscriber/struct.EnvFilter.html
 
 use {
+    self::matcher::SpanMatcher,
     crate::{Diagnostics, DEFAULT_ENV},
     std::{cell::RefCell, collections::HashMap, env, ffi::OsStr, fmt, sync::RwLock},
     thread_local::ThreadLocal,
     tracing_core::{callsite, span, Interest, LevelFilter, Metadata, Subscriber},
-    tracing_subscriber::layer::Context,
+    tracing_subscriber::{
+        layer::Context,
+        registry::{LookupSpan, SpanRef},
+    },
 };
 
 mod directive;
@@ -51,7 +55,6 @@ pub struct Filter {
     scope: ThreadLocal<RefCell<Vec<LevelFilter>>>,
     statics: directive::Statics,
     dynamics: directive::Dynamics,
-    by_id: RwLock<HashMap<span::Id, matcher::SpanMatcher>>,
     by_cs: RwLock<HashMap<callsite::Identifier, matcher::CallsiteMatcher>>,
 }
 
@@ -106,9 +109,9 @@ impl Filter {
         !self.dynamics.directives.is_empty()
     }
 
-    fn cares_about_span(&self, span: &span::Id) -> bool {
-        let by_id = try_lock!(self.by_id.read(), else return false);
-        by_id.contains_key(span)
+    fn cares_about_span<R: for<'a> LookupSpan<'a>>(&self, span: SpanRef<'_, R>) -> bool {
+        let ext = span.extensions();
+        ext.get::<SpanMatcher>().is_some()
     }
 
     fn base_interest(&self) -> Interest {
@@ -120,7 +123,7 @@ impl Filter {
     }
 }
 
-impl<S: Subscriber> crate::Filter<S> for Filter {
+impl<S: Subscriber + for<'a> LookupSpan<'a>> crate::Filter<S> for Filter {
     fn enabled(&self, metadata: &Metadata<'_>, _ctx: &Context<'_, S>) -> bool {
         let level = metadata.level();
 
@@ -185,43 +188,47 @@ impl<S: Subscriber> crate::Filter<S> for Filter {
         std::cmp::max(self.statics.level.into(), self.dynamics.level.into())
     }
 
-    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, _: Context<'_, S>) {
+    fn on_new_span(&self, attrs: &span::Attributes<'_>, id: &span::Id, ctx: Context<'_, S>) {
         let by_cs = try_lock!(self.by_cs.read());
         if let Some(cs) = by_cs.get(&attrs.metadata().callsite()) {
-            let span = cs.to_span_matcher(attrs);
-            try_lock!(self.by_id.write()).insert(id.clone(), span);
+            let span = ctx.span(id).expect("span should be registered");
+            let matcher = cs.to_span_matcher(attrs);
+            span.extensions_mut().insert(matcher);
         }
     }
 
-    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, _ctx: Context<'_, S>) {
-        if let Some(span) = try_lock!(self.by_id.read()).get(id) {
-            span.record_update(values);
+    fn on_record(&self, id: &span::Id, values: &span::Record<'_>, ctx: Context<'_, S>) {
+        let span = ctx.span(id).expect("span should be registered");
+        let ext = span.extensions();
+        if let Some(matcher) = ext.get::<SpanMatcher>() {
+            matcher.record_update(values);
         }
     }
 
-    fn on_enter(&self, id: &span::Id, _: Context<'_, S>) {
+    fn on_enter(&self, id: &span::Id, ctx: Context<'_, S>) {
         // We _could_ push IDs to the stack instead, and use that to allow
         // changing the filter while a span is already entered. But that seems
         // much less efficient...
-        if let Some(span) = try_lock!(self.by_id.read()).get(id) {
-            self.scope.get_or_default().borrow_mut().push(span.level());
+        let span = ctx.span(id).expect("span should be registered");
+        let ext = span.extensions();
+        if let Some(matcher) = ext.get::<SpanMatcher>() {
+            self.scope
+                .get_or_default()
+                .borrow_mut()
+                .push(matcher.level());
         }
     }
 
-    fn on_exit(&self, id: &span::Id, _ctx: Context<'_, S>) {
-        if self.cares_about_span(id) {
+    fn on_exit(&self, id: &span::Id, ctx: Context<'_, S>) {
+        let span = ctx.span(id).expect("span should be registered");
+        if self.cares_about_span(span) {
             self.scope.get_or_default().borrow_mut().pop();
         }
     }
 
-    fn on_close(&self, id: span::Id, _ctx: Context<'_, S>) {
-        // If we don't need a write lock, avoid taking one.
-        if !self.cares_about_span(&id) {
-            return;
-        }
-
-        let mut by_id = try_lock!(self.by_id.write());
-        by_id.remove(&id);
+    fn on_close(&self, id: span::Id, ctx: Context<'_, S>) {
+        let span = ctx.span(&id).expect("span should be registered");
+        span.extensions_mut().remove::<SpanMatcher>();
     }
 }
 
