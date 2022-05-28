@@ -1,7 +1,7 @@
 use {
     super::matcher::{CallsiteMatch, CallsiteMatcher, FieldMatch, Match},
     crate::SmallVec,
-    compact_str::CompactStr,
+    compact_str::CompactString,
     std::{cmp::Ordering, collections::HashMap, fmt},
     tracing_core::{LevelFilter, Metadata},
 };
@@ -16,9 +16,9 @@ pub(super) type Dynamics = DirectiveSet<DynamicDirective>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct DynamicDirective {
-    pub(super) span: Option<CompactStr>,
+    pub(super) span: Option<CompactString>,
     pub(super) fields: SmallVec<FieldMatch>,
-    pub(super) target: Option<CompactStr>,
+    pub(super) target: Option<CompactString>,
     pub(super) level: LevelFilter,
 }
 
@@ -26,8 +26,8 @@ pub(super) type Statics = DirectiveSet<StaticDirective>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct StaticDirective {
-    pub(super) target: Option<CompactStr>,
-    pub(super) fields: SmallVec<CompactStr>,
+    pub(super) target: Option<CompactString>,
+    pub(super) fields: SmallVec<CompactString>,
     pub(super) level: LevelFilter,
 }
 
@@ -289,8 +289,8 @@ impl Ord for DynamicDirective {
         let ordering = self
             .target
             .as_ref()
-            .map(CompactStr::len)
-            .cmp(&other.target.as_ref().map(CompactStr::len))
+            .map(CompactString::len)
+            .cmp(&other.target.as_ref().map(CompactString::len))
             // Next compare based on the presence of span names.
             .then_with(|| self.span.is_some().cmp(&other.span.is_some()))
             // Then we compare how many fields are defined by each
@@ -347,8 +347,8 @@ impl Ord for StaticDirective {
         let ordering = self
             .target
             .as_ref()
-            .map(CompactStr::len)
-            .cmp(&other.target.as_ref().map(CompactStr::len))
+            .map(CompactString::len)
+            .cmp(&other.target.as_ref().map(CompactString::len))
             // Then we compare how many field names are matched by each directive.
             .then_with(|| self.fields.len().cmp(&other.fields.len()))
             // Finally, we fall back to lexicographical ordering if the directives are
