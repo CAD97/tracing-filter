@@ -2,32 +2,8 @@ use {
     super::{directive::*, *},
     crate::FilterLayer,
     tracing_core::{field::FieldSet, *},
-    tracing_subscriber::prelude::*,
+    tracing_subscriber::{prelude::*, registry},
 };
-
-struct NoSubscriber;
-impl Subscriber for NoSubscriber {
-    #[inline]
-    fn register_callsite(&self, _: &'static Metadata<'static>) -> subscriber::Interest {
-        subscriber::Interest::always()
-    }
-    fn new_span(&self, _: &span::Attributes<'_>) -> span::Id {
-        span::Id::from_u64(0xDEAD)
-    }
-    fn event(&self, _event: &Event<'_>) {}
-    fn record(&self, _span: &span::Id, _values: &span::Record<'_>) {}
-    fn record_follows_from(&self, _span: &span::Id, _follows: &span::Id) {}
-
-    #[inline]
-    fn enabled(&self, _metadata: &Metadata<'_>) -> bool {
-        true
-    }
-    fn enter(&self, _span: &span::Id) {}
-    fn exit(&self, _span: &span::Id) {}
-    fn current_span(&self) -> span::Current {
-        span::Current::none()
-    }
-}
 
 struct Cs;
 impl Callsite for Cs {
@@ -39,7 +15,7 @@ impl Callsite for Cs {
 
 #[test]
 fn callsite_enabled_no_span_directive() {
-    let filter = FilterLayer::new(Filter::new("app=debug")).with_subscriber(NoSubscriber);
+    let filter = FilterLayer::new(Filter::new("app=debug")).with_subscriber(registry());
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -57,7 +33,7 @@ fn callsite_enabled_no_span_directive() {
 
 #[test]
 fn callsite_off() {
-    let filter = FilterLayer::new(Filter::new("app=off")).with_subscriber(NoSubscriber);
+    let filter = FilterLayer::new(Filter::new("app=off")).with_subscriber(registry());
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -75,7 +51,7 @@ fn callsite_off() {
 
 #[test]
 fn callsite_enabled_includes_span_directive() {
-    let filter = FilterLayer::new(Filter::new("app[mySpan]=debug")).with_subscriber(NoSubscriber);
+    let filter = FilterLayer::new(Filter::new("app[mySpan]=debug")).with_subscriber(registry());
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -94,7 +70,7 @@ fn callsite_enabled_includes_span_directive() {
 #[test]
 fn callsite_enabled_includes_span_directive_field() {
     let filter = FilterLayer::new(Filter::new("app[mySpan{field=\"value\"}]=debug"))
-        .with_subscriber(NoSubscriber);
+        .with_subscriber(registry());
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -118,7 +94,7 @@ fn callsite_enabled_includes_span_directive_multiple_fields() {
             .parse::<Filter>()
             .expect("filter should parse without warnings"),
     )
-    .with_subscriber(NoSubscriber);
+    .with_subscriber(registry());
     static META: &Metadata<'static> = &Metadata::new(
         "mySpan",
         "app",
@@ -151,12 +127,12 @@ fn size_of_filters() {
         #[cfg(target_pointer_width = "64")]
         assert_eq!(
             std::mem::size_of_val(&filter),
-            92 * std::mem::size_of::<usize>()
+            84 * std::mem::size_of::<usize>()
         );
         #[cfg(target_pointer_width = "32")]
         assert_eq!(
             std::mem::size_of_val(&filter),
-            64 * std::mem::size_of::<usize>()
+            54 * std::mem::size_of::<usize>()
         );
         #[cfg(target_pointer_width = "16")]
         panic!("adventurous, aren't you; I'm surprised you even got this far")
