@@ -1,6 +1,6 @@
 use {
     crate::SmallVec,
-    compact_str::CompactStr,
+    compact_str::CompactString,
     matchers::Pattern,
     std::{
         cmp::Ordering,
@@ -19,7 +19,7 @@ pub(super) struct MatchSet<T> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct FieldMatch {
-    pub(super) name: CompactStr,
+    pub(super) name: CompactString,
     pub(super) value: Option<ValueMatch>,
 }
 
@@ -53,7 +53,7 @@ pub(super) enum ValueMatch {
 #[derive(Debug, Clone)]
 pub(super) struct PatternMatch {
     pub(super) matcher: Pattern,
-    pub(super) pattern: CompactStr,
+    pub(super) pattern: CompactString,
 }
 
 pub(super) trait Match {

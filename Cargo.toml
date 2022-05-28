@@ -13,7 +13,7 @@ description = "experimental next-generation filtering support for tracing"
 autotests = false
 
 [dependencies]
-compact_str = "0.3.2"
+compact_str = "0.4"
 matchers = "0.1.0"
 miette = { version = "4.7.1", features = ["fancy"] }
 once_cell = "1.12.0"

@@ -2,7 +2,7 @@
 
 use {
     crate::{Diagnostics, DEFAULT_ENV},
-    compact_str::CompactStr,
+    compact_str::CompactString,
     std::{borrow::Cow, cmp, env, ffi::OsStr, fmt},
     tracing_core::{Interest, LevelFilter, Metadata},
     tracing_subscriber::layer::Context,
@@ -47,7 +47,7 @@ pub struct Filter {
 
 #[derive(Debug, PartialEq, Eq)]
 struct Directive {
-    target: Option<CompactStr>,
+    target: Option<CompactString>,
     level: LevelFilter,
 }
 
