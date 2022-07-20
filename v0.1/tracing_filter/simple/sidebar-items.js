@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Filter","A filter matching the semantics of the `env_logger` crate’s filter format."]]});
+window.SIDEBAR_ITEMS = {"struct":[["Filter","A filter matching the semantics of the `env_logger` crate’s filter format."]]};
