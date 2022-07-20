@@ -6,46 +6,46 @@ name = "tracing-filter"
 version = "0.1.0-alpha.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-rust-version = "1.56"
+rust-version = "1.57"
 
 description = "experimental next-generation filtering support for tracing"
 
 autotests = false
 
 [dependencies]
-compact_str = "0.4"
+compact_str = "0.5.1"
 matchers = "0.1.0"
-miette = { version = "4.7.1", features = ["fancy"] }
-once_cell = "1.12.0"
-regex = "1.5.6"
-smallvec = { version = "1.8.0", optional = true }
+miette = { version = "5.1.1", features = ["fancy"] }
+once_cell = "1.13.0"
+regex = "1.6.0"
+smallvec = { version = "1.9.0", optional = true }
 thiserror = "1.0.31"
 thread_local = "1.1.4"
 
 # The only place tracing is used not in tests is for STATIC_MAX_LEVEL
 # Everything else just uses tracing-core; is this worth making optional?
 [dependencies.tracing]
-version = "0.1.34"
+version = "0.1.35"
 default-features = false
 features = ["std"]
 
 [dependencies.tracing-core]
-version = "0.1.26"
+version = "0.1.28"
 default-features = false
 features = ["std"]
 
 [dependencies.tracing-subscriber]
-version = "0.3.11"
+version = "0.3.14"
 default-features = false
 features = ["registry", "std"]
 
 [dev-dependencies]
 env_logger = "0.9.0"
-insta = { version = "1.14.0", features = ["glob"] }
+insta = { version = "1.15.0", features = ["glob"] }
 log = "0.4.17"
 
 [dev-dependencies.tracing-subscriber]
-version = "0.3.11"
+version = "0.3.14"
 default-features = false
 features = ["fmt", "tracing-log", "env-filter"]
 

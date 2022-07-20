@@ -121,38 +121,16 @@ fn roundtrip() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn size_of_filters() {
-    fn assert_sz(s: &str) {
-        let filter = s.parse::<Filter>().expect("filter should parse");
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(
-            std::mem::size_of_val(&filter),
-            84 * std::mem::size_of::<usize>()
-        );
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(
-            std::mem::size_of_val(&filter),
-            54 * std::mem::size_of::<usize>()
-        );
-        #[cfg(target_pointer_width = "16")]
-        panic!("adventurous, aren't you; I'm surprised you even got this far")
-    }
+    use std::mem::size_of;
 
-    assert_sz("info");
+    let real_size = size_of::<Filter>() / size_of::<usize>();
+    let allowed_size = usize::BITS as usize + 22;
 
-    assert_sz("foo=debug");
-
-    assert_sz(
-        "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
-        crate2=debug,crate3=trace,crate3::mod2::mod1=off",
-    );
-
-    assert_sz("[span1{foo=1}]=error,[span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug");
-
-    assert_sz(
-        "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
-        crate2=debug,crate3=trace,crate3::mod2::mod1=off,[span1{foo=1}]=error,\
-        [span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug",
+    assert!(
+        real_size <= allowed_size,
+        "Filter is too large; {real_size}×usize > {allowed_size}×usize"
     );
 }
 
