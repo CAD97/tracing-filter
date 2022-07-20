@@ -121,31 +121,17 @@ fn roundtrip() {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn size_of_filters() {
-    use std::{
-        alloc::Layout,
-        sync::{Mutex, RwLock},
-    };
+    use std::mem::size_of;
 
-    let layout = Layout::new::<Filter>();
+    let real_size = size_of::<Filter>() / size_of::<usize>();
+    let allowed_size = usize::BITS as usize + 22;
 
-    #[cfg(target_pointer_width = "64")]
-    let target_layout = Layout::array::<usize>(80).unwrap();
-    #[cfg(target_pointer_width = "32")]
-    let target_layout = Layout::array::<usize>(50).unwrap();
-    #[cfg(target_pointer_width = "16")]
-    let target_layout = panic!("adventurous, aren't you; I'm surprised you even got this far");
-
-    let target_layout = target_layout
-        .extend(Layout::new::<Mutex<()>>())
-        .unwrap()
-        .0
-        .extend(Layout::new::<RwLock<()>>())
-        .unwrap()
-        .0
-        .pad_to_align();
-
-    assert_eq!(layout, target_layout);
+    assert!(
+        real_size <= allowed_size,
+        "Filter is too large; {real_size}×usize > {allowed_size}×usize"
+    );
 }
 
 fn parse_directives(dirs: impl AsRef<str>) -> Vec<DynamicDirective> {
