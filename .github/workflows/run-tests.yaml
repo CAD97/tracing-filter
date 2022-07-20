@@ -15,34 +15,27 @@ jobs:
   tests:
     name: Run tests
     runs-on: ${{ inputs.os }}
+    continue-on-error: true
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Generate lockfile for cache
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
+      - name: Setup
+        uses: ./.github/actions/setup
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
-
+        uses: Swatinem/rust-cache@v2
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
       - name: Build tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features --all-targets --no-run
-
+        run: cargo test --all-features --all-targets --no-run
       - name: Run tests
-        uses: actions-rs/cargo@v1
+        run: cargo nextest run -P ci --all-features --all-targets --no-fail-fast
+      - name: Report tests
+        if: ${{ always() }}
+        uses: mikepenz/action-junit-report@v3
         with:
-          command: test
-          args: --all-features --all-targets --no-fail-fast
+          report_paths: target/nextest/ci/junit.xml
+          check_name: cargo test (ubuntu-latest)
+          check_title_template: "{{SUITE_NAME}}::{{TEST_NAME}}"
+      - name: Run doctests
+        run: cargo test --all-features --doc

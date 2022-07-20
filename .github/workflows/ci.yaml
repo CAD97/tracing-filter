@@ -1,5 +1,9 @@
 name: CI
 on:
+  push: # necessary for cache sharing
+    branches:
+      - v0.1
+      - v0.2
   pull_request:
 
 env:
@@ -10,60 +14,25 @@ env:
 
 jobs:
   style:
-    name: Check lints
+    name: Check style
     runs-on: ubuntu-latest
-
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      # Pinned version to avoid unrelated breakage in PRs
-      - name: Install 1.59 toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          toolchain: 1.59
-          profile: minimal
-          components: clippy
-          override: true
-
-      - name: Generate lockfile for cache
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
+          toolchain: nightly-2022-07-01
+          components: clippy, rustfmt
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy --all-features --all-targets -- -Dwarnings
+      - name: cargo fmt
+        run: cargo fmt -- --check
 
-      - name: Check style
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features --all-targets -- -Dwarnings
-
-  format:
-    name: Check formatting
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Pinned version to avoid unrelated breakage in PRs
-      - name: Install nighly (2022-04-02) toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2022-04-02
-          profile: minimal
-          components: rustfmt
-          override: true
-
-      - name: Check formatting
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
-
-  tests:
+  tests-nix:
     name: Run tests (ubuntu-latest)
     uses: ./.github/workflows/run-tests.yaml
     with:
@@ -71,14 +40,14 @@ jobs:
 
   tests-win:
     name: Run tests (windows-latest)
-    needs: tests
+    needs: tests-nix
     uses: ./.github/workflows/run-tests.yaml
     with:
       os: windows-latest
 
   tests-mac:
     name: Run tests (macOS-latest)
-    needs: tests
+    needs: tests-nix
     uses: ./.github/workflows/run-tests.yaml
     with:
       os: macOS-latest
@@ -86,130 +55,55 @@ jobs:
   tests-wasi:
     name: Run tests (wasi)
     runs-on: ubuntu-latest
-    needs: tests
-
+    needs: tests-nix
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
-          target: wasm32-wasi
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Generate lockfile for cache
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
+          targets: wasm32-wasi
       - name: Setup cache
         uses: Swatinem/rust-cache@v1
-
       - name: Install wasmtime
         uses: taiki-e/install-action@wasmtime
-
       - name: Refresh sh profile
         run: source ~/.profile
-
       - name: Install cargo-wasi
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-wasi
-
+        run: cargo install cargo-wasi
       - name: Build tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: wasi
-          args: test --all-features --all-targets --no-run
-
+        run: cargo wasi test --all-features --all-targets --no-run
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: wasi
-          args: test --all-features --all-targets -- --nocapture
+        run: cargo wasi test --all-features --all-targets -- --nocapture
 
   features:
     name: Check feature powerset
     runs-on: ubuntu-latest
-    needs: tests
+    needs: tests-nix
     env:
       CARGO_INCREMENTAL: 1
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-
-      - name: Generate lockfile for cache
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
-
+      - name: Setup
+        uses: ./.github/actions/setup
       - name: Setup cache
         uses: Swatinem/rust-cache@v1
-
       - name: Install cargo-hack
         uses: taiki-e/install-action@cargo-hack
-
       - name: Check feature powerset
-        uses: actions-rs/cargo@v1
-        with:
-          command: hack
-          args: --feature-powerset --optional-deps --exclude-all-features --keep-going check --lib --tests
+        run: cargo hack check --feature-powerset --optional-deps --exclude-all-features --keep-going --lib --tests
 
   msrv:
     name: Check supported versions
     runs-on: ubuntu-latest
-    needs: tests
-
+    needs: tests-nix
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
+      - name: Setup
+        uses: ./.github/actions/setup
       - name: Install cargo-hack
         uses: taiki-e/install-action@cargo-hack
-
       - name: Check all versions
-        uses: actions-rs/cargo@v1
-        with:
-          command: hack
-          args: check --version-range .. --lib --all-features
-
-  minver:
-    name: Check minimal versions
-    runs-on: ubuntu-latest
-    needs: features
-    continue-on-error: true
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install nightly toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          profile: minimal
-          override: true
-
-      - name: Install cargo-hack
-        uses: taiki-e/install-action@cargo-hack
-
-      - name: Install cargo-minimal-versions
-        uses: taiki-e/install-action@cargo-minimal-versions
-
-      - name: Check minimal versions compliance
-        uses: actions-rs/cargo@v1
-        with:
-          command: hack
-          args: minimal-versions --feature-powerset check --lib
+        run: cargo hack check --version-range .. --lib --all-features

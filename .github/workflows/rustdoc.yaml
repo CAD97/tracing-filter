@@ -18,24 +18,13 @@ jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Install beta toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: beta
-          profile: minimal
-          override: true
-
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@beta
       - name: Build docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --no-deps
-
+        run: cargo doc --no-deps
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
