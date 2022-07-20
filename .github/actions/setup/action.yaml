@@ -1,0 +1,29 @@
+name: Setup
+description: Initial setup for workflows
+
+inputs:
+  toolchain:
+    description: Which toolchain to install
+    required: false
+    default: 1.62.1
+  components:
+    description: Components to include on stable
+    required: false
+  targets:
+    description: Additional targets
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Install toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: ${{ inputs.components }}
+        target: ${{ inputs.targets }}
+    # - name: Generate lockfile
+    #   env:
+    #     RUSTC_BOOTSTRAP: "1" # sorry
+    #   run: cargo -Zminimal-versions generate-lockfile
+    #   shell: bash
