@@ -122,38 +122,30 @@ fn roundtrip() {
 
 #[test]
 fn size_of_filters() {
-    fn assert_sz(s: &str) {
-        let filter = s.parse::<Filter>().expect("filter should parse");
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(
-            std::mem::size_of_val(&filter),
-            84 * std::mem::size_of::<usize>()
-        );
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(
-            std::mem::size_of_val(&filter),
-            54 * std::mem::size_of::<usize>()
-        );
-        #[cfg(target_pointer_width = "16")]
-        panic!("adventurous, aren't you; I'm surprised you even got this far")
-    }
+    use std::{
+        alloc::Layout,
+        sync::{Mutex, RwLock},
+    };
 
-    assert_sz("info");
+    let layout = Layout::new::<Filter>();
 
-    assert_sz("foo=debug");
+    #[cfg(target_pointer_width = "64")]
+    let target_layout = Layout::array::<usize>(80).unwrap();
+    #[cfg(target_pointer_width = "32")]
+    let target_layout = Layout::array::<usize>(50).unwrap();
+    #[cfg(target_pointer_width = "16")]
+    let target_layout = panic!("adventurous, aren't you; I'm surprised you even got this far");
 
-    assert_sz(
-        "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
-        crate2=debug,crate3=trace,crate3::mod2::mod1=off",
-    );
+    let target_layout = target_layout
+        .extend(Layout::new::<Mutex<()>>())
+        .unwrap()
+        .0
+        .extend(Layout::new::<RwLock<()>>())
+        .unwrap()
+        .0
+        .pad_to_align();
 
-    assert_sz("[span1{foo=1}]=error,[span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug");
-
-    assert_sz(
-        "crate1::mod1=error,crate1::mod2=warn,crate1::mod2::mod3=info,\
-        crate2=debug,crate3=trace,crate3::mod2::mod1=off,[span1{foo=1}]=error,\
-        [span2{bar=2 baz=false}],crate2[{quux=\"quuux\"}]=debug",
-    );
+    assert_eq!(layout, target_layout);
 }
 
 fn parse_directives(dirs: impl AsRef<str>) -> Vec<DynamicDirective> {
