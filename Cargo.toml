@@ -6,7 +6,7 @@ name = "tracing-filter"
 version = "0.1.0-alpha.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-rust-version = "1.56"
+rust-version = "1.57"
 
 description = "experimental next-generation filtering support for tracing"
 

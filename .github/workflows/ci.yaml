@@ -183,7 +183,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: hack
-          args: --version-range 1.56.. check --lib --all-features
+          args: --version-range check --lib --all-features
 
   minver:
     name: Check minimal versions
