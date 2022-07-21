@@ -2,28 +2,50 @@ name: Setup
 description: Initial setup for workflows
 
 inputs:
-  toolchain:
-    description: Which toolchain to install
+  kind:
+    description: Job kind (for cache key)
     required: false
-    default: 1.62.1
+  toolchain:
+    description: Toolchain version
+    required: false
+    default: "1.62.1"
   components:
-    description: Components to include on stable
+    description: Toolchain components
     required: false
   targets:
-    description: Additional targets
+    description: Toolchain targets
     required: false
+  do-cache:
+    description: Should the cache be set up?
+    required: false
+    default: "true"
+
+outputs:
+  cache-key:
+    description: Cache key
+    value: ${{inputs.kind}}-${{runner.os}}-${{steps.toolchain.outputs.cachekey}}
 
 runs:
   using: composite
   steps:
-    - name: Install toolchain
+    - name: Install Rust nightly # for minimal-versions
+      uses: dtolnay/rust-toolchain@nightly
+    - name: Install Rust ${{inputs.toolchain}}
       uses: dtolnay/rust-toolchain@master
+      id: toolchain
       with:
-        toolchain: ${{ inputs.toolchain }}
-        components: ${{ inputs.components }}
-        target: ${{ inputs.targets }}
-    # - name: Generate lockfile
-    #   env:
-    #     RUSTC_BOOTSTRAP: "1" # sorry
-    #   run: cargo -Zminimal-versions generate-lockfile
-    #   shell: bash
+        toolchain: ${{inputs.toolchain}}
+        components: ${{inputs.components}}
+        targets: ${{inputs.targets}}
+    - name: Install cargo-hack
+      uses: taiki-e/install-action@cargo-hack
+    - name: Install cargo-minimal-versions
+      uses: taiki-e/install-action@cargo-minimal-versions
+    - name: Generate lockfile
+      run: cargo minimal-versions generate-lockfile
+      shell: sh
+    - name: Stetup cache
+      if: ${{fromJSON(inputs.do-cache)}}
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{inputs.kind}}-${{runner.os}}-${{steps.toolchain.outputs.cachekey}}

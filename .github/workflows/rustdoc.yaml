@@ -1,4 +1,4 @@
-name: Deploy development docs preview
+name: Deploy docs preview
 on:
   push:
     branches:
