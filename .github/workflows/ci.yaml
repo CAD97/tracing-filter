@@ -1,109 +1,152 @@
+# A little paranoia, but not excessive
+
 name: CI
 on:
   push: # necessary for cache sharing
-    branches:
-      - v0.1
-      - v0.2
+    branches: [v0.1]
   pull_request:
 
 env:
-  CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
   RUSTUP_MAX_RETRIES: 10
   RUST_BACKTRACE: short
 
 jobs:
-  style:
-    name: Check style
+  fmt:
+    name: cargo fmt
     runs-on: ubuntu-latest
-    continue-on-error: true
+    env:
+      RUST_NIGHTLY_PIN: nightly-2022-07-01 # upgrade this regularly
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Setup
-        uses: ./.github/actions/setup
+      - name: Install Rust ${{env.RUST_NIGHTLY_PIN}}
+        uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly-2022-07-01
-          components: clippy, rustfmt
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v2
-      - name: cargo clippy
-        run: cargo clippy --all-features --all-targets -- -Dwarnings
+          toolchain: ${{env.RUST_NIGHTLY_PIN}}
+          components: rustfmt
       - name: cargo fmt
         run: cargo fmt -- --check
 
-  tests-nix:
-    name: Run tests (ubuntu-latest)
-    uses: ./.github/workflows/run-tests.yaml
-    with:
-      os: ubuntu-latest
-
-  tests-win:
-    name: Run tests (windows-latest)
-    needs: tests-nix
-    uses: ./.github/workflows/run-tests.yaml
-    with:
-      os: windows-latest
-
-  tests-mac:
-    name: Run tests (macOS-latest)
-    needs: tests-nix
-    uses: ./.github/workflows/run-tests.yaml
-    with:
-      os: macOS-latest
-
-  tests-wasi:
-    name: Run tests (wasi)
+  check:
+    name: cargo check
     runs-on: ubuntu-latest
-    needs: tests-nix
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          targets: wasm32-wasi
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v1
-      - name: Install wasmtime
-        uses: taiki-e/install-action@wasmtime
-      - name: Refresh sh profile
-        run: source ~/.profile
-      - name: Install cargo-wasi
-        run: cargo install cargo-wasi
-      - name: Build tests
-        run: cargo wasi test --all-features --all-targets --no-run
-      - name: Run tests
-        run: cargo wasi test --all-features --all-targets -- --nocapture
+          kind: check
+      - name: cargo check
+        run: cargo check --all-features --all-targets
 
-  features:
-    name: Check feature powerset
+  clippy:
+    name: cargo clippy
+    needs: check
     runs-on: ubuntu-latest
-    needs: tests-nix
-    env:
-      CARGO_INCREMENTAL: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          kind: check
+          components: clippy
+      - name: cargo clippy
+        run: cargo clippy --all-features --all-targets -- -Dwarnings
+
+  test:
+    name: cargo test
+    needs: check
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup
+        uses: ./.github/actions/setup
+        id: setup
+        with:
+          kind: build
+          do-cache: false
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
       - name: Setup cache
-        uses: Swatinem/rust-cache@v1
-      - name: Install cargo-hack
-        uses: taiki-e/install-action@cargo-hack
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ${{steps.setup.outputs.cache-key}}
+      - name: Build tests
+        run: cargo test --all-features --all-targets --no-run
+      - name: Run tests
+        run: cargo nextest run -P ci --all-features --all-targets --no-fail-fast
+      - name: Report tests
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: junit-${{runner.os}}
+          path: target/nextest/ci/junit.xml
+      - name: Run doctests
+        run: cargo test --all-features --doc
+
+  wasi:
+    name: cargo wasi test
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup
+        uses: ./.github/actions/setup
+        id: setup
+        with:
+          kind: build
+          do-cache: false
+      - name: Install wasmtime
+        uses: taiki-e/install-action@wasmtime
+      - name: Install cargo-wasi
+        run: cargo install cargo-wasi
+      - name: Refresh sh profile
+        run: source ~/.profile
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: wasi-${{steps.setup.outputs.cache-key}}
+      - name: Build tests
+        run: cargo wasi test --all-features --all-targets --no-run
+      - name: Run tests
+        run: cargo wasi test --all-features --all-targets --no-fail-fast
+
+  hack:
+    name: cargo hack check --feature-powerset
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Setup
+        uses: ./.github/actions/setup
+        id: setup
+        with:
+          kind: check
       - name: Check feature powerset
         run: cargo hack check --feature-powerset --optional-deps --exclude-all-features --keep-going --lib --tests
 
   msrv:
-    name: Check supported versions
+    name: cargo msrv verify
+    needs: check
     runs-on: ubuntu-latest
-    needs: tests-nix
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Setup
         uses: ./.github/actions/setup
-      - name: Install cargo-hack
-        uses: taiki-e/install-action@cargo-hack
-      - name: Check all versions
-        run: cargo hack check --version-range .. --lib --all-features
+        id: setup
+        with:
+          kind: msrv
+      - name: Install cargo-msrv
+        run: cargo install cargo-msrv
+      - name: Check msrv
+        run: cargo msrv verify

@@ -13,10 +13,13 @@ jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
       - name: Setup
         uses: ./.github/actions/setup
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v1
+        id: setup
+        with:
+          do-cache: false
       - name: Cargo Audit
         uses: actions-rs/audit-check@v1
         with:
