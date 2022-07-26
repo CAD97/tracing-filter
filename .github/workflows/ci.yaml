@@ -71,13 +71,7 @@ jobs:
         id: setup
         with:
           kind: build
-          do-cache: false
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@nextest
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{steps.setup.outputs.cache-key}}
+          tools: nextest
       - name: Build tests
         run: cargo test --all-features --all-targets --no-run
       - name: Run tests
@@ -103,18 +97,10 @@ jobs:
         uses: ./.github/actions/setup
         id: setup
         with:
-          kind: build
-          do-cache: false
-      - name: Install wasmtime
-        uses: taiki-e/install-action@wasmtime
-      - name: Install cargo-wasi
-        run: cargo install cargo-wasi
+          kind: wasi-build
+          tools: wasmtime,cargo-wasi
       - name: Refresh sh profile
         run: source ~/.profile
-      - name: Setup cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: wasi-${{steps.setup.outputs.cache-key}}
       - name: Build tests
         run: cargo wasi test --all-features --all-targets --no-run
       - name: Run tests
@@ -147,7 +133,10 @@ jobs:
         id: setup
         with:
           kind: msrv
+          tools: cargo-msrv
       - name: Install cargo-msrv
-        run: cargo install cargo-msrv
+        uses: taiki-e/install-action@v1
+        with:
+          tool: cargo-msrv
       - name: Check msrv
         run: cargo msrv verify

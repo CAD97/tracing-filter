@@ -15,10 +15,9 @@ inputs:
   targets:
     description: Toolchain targets
     required: false
-  do-cache:
-    description: Should the cache be set up?
+  tools:
+    description: Additional tools to install
     required: false
-    default: "true"
 
 outputs:
   cache-key:
@@ -37,15 +36,19 @@ runs:
         toolchain: ${{inputs.toolchain}}
         components: ${{inputs.components}}
         targets: ${{inputs.targets}}
-    - name: Install cargo-hack
-      uses: taiki-e/install-action@cargo-hack
-    - name: Install cargo-minimal-versions
-      uses: taiki-e/install-action@cargo-minimal-versions
+    - name: Install cargo-hack,cargo-minimal-versions
+      uses: taiki-e/install-action@v1
+      with:
+        tool: cargo-hack,cargo-minimal-versions
+    - name: Install ${{inputs.tools}}
+      uses: taiki-e/install-action@v1
+      if: ${{inputs.tools}}
+      with:
+        tool: ${{inputs.tools}}
     - name: Generate lockfile
       run: cargo minimal-versions generate-lockfile
       shell: sh
     - name: Stetup cache
-      if: ${{fromJSON(inputs.do-cache)}}
       uses: Swatinem/rust-cache@v2
       with:
         shared-key: ${{inputs.kind}}-${{runner.os}}-${{steps.toolchain.outputs.cachekey}}
