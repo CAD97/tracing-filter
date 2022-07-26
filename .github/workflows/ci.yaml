@@ -146,7 +146,9 @@ jobs:
         id: setup
         with:
           kind: msrv
+      - name: Install cargo-binstall
+        uses: taiki-e/install-action@cargo-binstall
       - name: Install cargo-msrv
-        run: cargo install cargo-msrv
+        run: cargo binstall cargo-msrv
       - name: Check msrv
         run: cargo msrv verify
