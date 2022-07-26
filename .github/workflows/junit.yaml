@@ -4,8 +4,12 @@ on:
     types:
       - completed
 
+permissions:
+  pull-requests: write
+
 jobs:
   checks:
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
