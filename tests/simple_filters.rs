@@ -49,9 +49,9 @@ fn filter_beginning_longest_match() {
 fn parse_default() {
     let filter = "info,crate1::mod1=warn".parse().unwrap();
     test(filter, |mock| {
-        mock.expect_event();
+        mock.expect_no_event();
         tracing::warn!(target: "crate1::mod1", "");
-        mock.expect_event();
+        mock.expect_no_event();
         tracing::info!(target: "crate2::mod2", "");
     });
 }
