@@ -5,7 +5,7 @@ on:
       - completed
 
 permissions:
-  pull-requests: write
+  checks: write
 
 jobs:
   checks:
