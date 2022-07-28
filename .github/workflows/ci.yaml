@@ -77,7 +77,7 @@ jobs:
       - name: Run tests
         run: cargo nextest run -P ci --all-features --all-targets --no-fail-fast
       - name: Upload test report
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: junit-${{runner.os}}
