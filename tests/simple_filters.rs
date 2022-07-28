@@ -24,7 +24,7 @@ fn test(filter: Filter, f: impl FnOnce(&MockLayer)) {
 fn filter_info() {
     let filter = Filter::empty().with_level(LevelFilter::INFO);
     test(filter, |mock| {
-        mock.expect_event();
+        // mock.expect_event();
         tracing::info!(target: "crate1", "");
         mock.expect_no_event();
         tracing::debug!(target: "crate1", "");
