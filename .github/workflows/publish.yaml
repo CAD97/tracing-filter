@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install toolchain
-        uses: dtolnay/rust-toolchain@1.56
+        uses: dtolnay/rust-toolchain@1.70
       - name: Publish
         run: cargo publish
         env:
